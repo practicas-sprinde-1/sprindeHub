@@ -1,9 +1,11 @@
 # SprinHub
+
 Aplicación para la centralización de información de clientes y sus respectivos proyectos y/o recursos.
 
 ## Diseño de la BDD
 
-El diseño de la base de de datos está pensado para ser sencillo y mantenible en el tiempo. A continuación el diagrama con la estructura de la base de datos:
+El diseño de la base de de datos está pensado para ser sencillo y mantenible en el tiempo. A continuación el diagrama
+con la estructura de la base de datos:
 
 ```mermaid
 
