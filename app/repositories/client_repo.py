@@ -5,11 +5,11 @@ from app.models.client import Client
 
 
 def find_all(
-        db:Session,
-        offset:int=0,
-        limit:int=20,
+        db: Session,
+        offset: int = 0,
+        limit: int = 20,
 
-)->list[Client]:
+) -> list[Client]:
     statement = (
         select(Client)
         .offset(offset)
@@ -19,28 +19,28 @@ def find_all(
         db.scalars(statement).all()
     )
 
+
 def find_by_id(
-        db:Session,
-        client_id:int,
-)->Client|None:
-   return db.get(Client, client_id)
+        db: Session,
+        client_id: int,
+) -> Client | None:
+    return db.get(Client, client_id)
 
 
 def save(
-        db:Session,
-        client:Client,
+        db: Session,
+        client: Client,
 
-)-> Client:
+) -> Client:
     db.add(client)
     db.commit()
     db.refresh(client)
     return client
 
+
 def delete(
-        db:Session,
-        client:Client,
-)->None:
+        db: Session,
+        client: Client,
+) -> None:
     db.delete(client)
     db.commit()
-
-    
