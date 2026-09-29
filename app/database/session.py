@@ -3,11 +3,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from app.core.config import DATABASE_URL
+from app.core.config import settings
+
 
 #Configuración para comunicación con MySQL
 engine = create_engine(
-    DATABASE_URL,
+    settings.database_url,
     pool_pre_ping=True,
 )
 
