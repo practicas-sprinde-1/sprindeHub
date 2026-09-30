@@ -37,6 +37,14 @@ def get_projects(
     return project_repo.find_all(db,offset,limit)
 
 
+def get_archived_projects(
+        db:Session,
+        offset:int,
+        limit:int
+)->list[Project]:
+    return project_repo.find_all_archived(db,offset,limit)
+
+
 def create_project(
         db:Session,
         data:ProjectCreate
@@ -85,3 +93,37 @@ def delete_project(
 
     project_repo.delete(db,project)
     return f"El proyecto{project_name} del cliente {client_name} ha sido borrado correctamente"
+
+def restore_project(
+        db:Session,
+        project_id:int
+)->Project:
+    project = get_project(db,project_id)
+
+    project.is_active=True
+
+    return project_repo.save(db,project)
+
+
+def archive_project(
+        db: Session,
+        project_id: int
+) -> Project:
+    project = get_project(db, project_id)
+
+    project.is_active = False
+
+    return project_repo.save(db, project)
+
+def get_active_project(
+        db:Session,
+        project_id:int
+)->Project:
+    project = get_project(db,project_id)
+
+    if not project.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El cliente está archivado",
+        )
+    return project

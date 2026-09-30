@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, ForeignKey, Text
+from sqlalchemy import String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database.base_class import Base
@@ -40,5 +40,12 @@ class Project(Base):
 
     environments: Mapped[list["Environment"]] = relationship(
         back_populates="project"
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="1",
     )
 
