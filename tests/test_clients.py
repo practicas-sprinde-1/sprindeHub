@@ -184,6 +184,7 @@ def test_list_clients_returns_clients(api_client):
             "name": "Prueba",
             "cif": "B12345678",
             "phone": "600123123",
+            "is_active":True
         }
     ]
 
