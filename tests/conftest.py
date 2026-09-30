@@ -14,11 +14,13 @@ from main import app
 @pytest.fixture(autouse=True)
 def clean_clients_table():
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM projects"))
         connection.execute(text("DELETE FROM clients"))
 
     yield
 
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM projects"))
         connection.execute(text("DELETE FROM clients"))
 
 

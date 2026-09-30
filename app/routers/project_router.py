@@ -24,7 +24,7 @@ DbSession= Annotated[
 def find_all(
         db:DbSession,
         offset:int = Query(default=0,ge=0),
-        limit:int=Query(default=0,ge=1,le=100)
+        limit:int=Query(default=20,ge=1,le=100)
 ):
     return project_service.get_projects(db,offset,limit)
 
@@ -39,14 +39,14 @@ def find_by_id(
     return project_service.get_project(db,project_id)
 
 @router.get(
-    "/{client_id}",
-    response_model=ProjectRead
+    "/client/{client_id}",
+    response_model=list[ProjectRead]
 )
 def find_by_client_id(
         db:DbSession,
         client_id:int,
         offset:int = Query(default=0,ge=0),
-        limit:int=Query(default=0,ge=1,le=100)
+        limit:int=Query(default=20,ge=1,le=100)
 ):
     return project_service.get_projects_by_id_client(db,client_id,offset,limit)
 

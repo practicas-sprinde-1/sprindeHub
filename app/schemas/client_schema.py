@@ -17,7 +17,6 @@ class ClientBase(BaseModel):
         max_length=120
     )
 
-
 class ClientCreate(ClientBase):
     pass
 
@@ -43,6 +42,7 @@ class ClientUpdate(BaseModel):
 
 class ClientRead(ClientBase):
     id: int
+    is_active:bool
 
     # Permite crear el DTO desde un objeto con atributos
     # dto = ClientRead.model_validate(client_orm)
