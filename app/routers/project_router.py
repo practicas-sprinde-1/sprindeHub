@@ -100,7 +100,7 @@ def archive(
     "/{project_id}/restore",
     response_model=ProjectRead
 )
-def archive(
+def restore(
         db:DbSession,
         project_id:int
 ):

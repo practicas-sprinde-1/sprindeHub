@@ -40,7 +40,7 @@ def create_environment(
         data:EnvironmentCreate
 )->Environment:
 
-    project = project_service.get_project(db,data.project_id)
+    project = project_service.get_active_project(db,data.project_id)
 
     environment = Environment(
         type=data.type,
@@ -48,4 +48,33 @@ def create_environment(
         project_id=project.id
     )
     return environment_repo.save(db,environment)
+
+def update_environment(
+        db:Session,
+        environment_id:int,
+        data:EnvironmentUpdate
+)->Environment:
+    environment = get_environment(db,environment_id)
+
+    updates = data.model_dump(
+        exclude_unset=True
+    )
+    if "project_id" in updates:
+        project_service.get_active_project(db,updates["project_id"])
+
+    for field,value in updates.items():
+        setattr(environment,field,value)
+
+    return environment_repo.save(db,environment)
+
+def delete_environment(
+        db:Session,
+        environment_id:int
+)->str:
+    environment = get_environment(db,environment_id)
+    name_project = environment.project.name
+
+    environment_repo.delete(db,environment)
+    return f"El entorno del proyecto {name_project} ha sido borrado correctamente"
+
 
