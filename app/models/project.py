@@ -7,6 +7,7 @@ from app.database.base_class import Base
 
 if TYPE_CHECKING:
     from app.models.client import Client
+    from app.models.environment import Environment
 
 
 class Project(Base):
@@ -32,6 +33,12 @@ class Project(Base):
         Text,
         nullable=True,
     )
+
     client: Mapped["Client"] = relationship(
         back_populates="projects"
     )
+
+    environments: Mapped[list["Environment"]] = relationship(
+        back_populates="project"
+    )
+
