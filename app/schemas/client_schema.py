@@ -45,7 +45,7 @@ class ClientRead(ClientBase):
     id: int
 
     # Permite crear el DTO desde un objeto con atributos
-    # dto = ClientRead.model_validate(product_orm)
+    # dto = ClientRead.model_validate(client_orm)
     model_config = ConfigDict(
         from_attributes=True
     )

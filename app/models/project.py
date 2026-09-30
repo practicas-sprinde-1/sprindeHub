@@ -1,0 +1,37 @@
+from typing import TYPE_CHECKING
+
+from sqlalchemy import String, ForeignKey, Text
+from sqlalchemy.orm import mapped_column, Mapped, relationship
+
+from app.database.base_class import Base
+
+if TYPE_CHECKING:
+    from app.models.client import Client
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        autoincrement=True
+    )
+
+    client_id: Mapped[int] = mapped_column(
+        ForeignKey("clients.id"),
+        nullable=False,
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(120),
+        nullable=False,
+        unique=True
+    )
+
+    description: Mapped[str|None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+    client: Mapped["Client"] = relationship(
+        back_populates="projects"
+    )
