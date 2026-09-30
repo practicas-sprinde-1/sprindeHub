@@ -85,3 +85,26 @@ def delete(
     project_service.delete_project(db, project_id)
 
 
+@router.patch(
+    "/{project_id}/archive",
+    response_model=ProjectRead
+)
+def archive(
+        db:DbSession,
+        project_id:int
+):
+    return project_service.archive_project(db,project_id)
+
+
+@router.patch(
+    "/{project_id}/restore",
+    response_model=ProjectRead
+)
+def archive(
+        db:DbSession,
+        project_id:int
+):
+    return project_service.restore_project(db,project_id)
+
+
+
