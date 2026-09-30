@@ -11,7 +11,6 @@ from app.database.session import sessionLocal, engine
 from main import app
 
 
-
 @pytest.fixture(autouse=True)
 def clean_clients_table():
     with engine.begin() as connection:

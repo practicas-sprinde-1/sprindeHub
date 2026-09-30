@@ -14,6 +14,7 @@ def find_all(
         select(Client)
         .offset(offset)
         .limit(limit)
+        .order_by(Client.id)
     )
     return list(
         db.scalars(statement).all()

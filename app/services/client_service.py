@@ -59,7 +59,7 @@ def update_client(
     for field, value in updates.items():
         setattr(client, field, value)
 
-    return client
+    return client_repo.save(db,client)
 
 
 def delete_client(
