@@ -4,11 +4,11 @@ from typing import Annotated
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from session import SessionLocal
+from app.database.session import sessionLocal
 
 
 def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
+    db = sessionLocal()
 
     try:
         yield db

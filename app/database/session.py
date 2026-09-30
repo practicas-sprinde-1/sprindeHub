@@ -12,7 +12,7 @@ engine = create_engine(
 )
 
 # Sesión para consultas
-SessionLocal = sessionmaker(
+sessionLocal = sessionmaker(
     autocommit=False,
     autoflush=False,
     bind=engine,
