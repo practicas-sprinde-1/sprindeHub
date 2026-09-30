@@ -41,7 +41,9 @@ def create_project(
         db:Session,
         data:ProjectCreate
 )->Project:
-    client = client_service.get_client(db,data.client_id)
+    client = client_service.get_active_client(db,data.client_id)
+
+
 
     project = Project(
         name=data.name,
@@ -63,7 +65,7 @@ def update_project(
         exclude_unset=True
     )
     if "client_id" in updates:
-        client_service.get_client(db,updates["client_id"])
+        client_service.get_active_client(db,updates["client_id"])
 
     for field,value in updates.items():
         setattr(project,field,value)
@@ -77,5 +79,9 @@ def delete_project(
         project_id:int
 )->str:
     project = get_project(db,project_id)
+
+    project_name = project.name
+    client_name = project.client.name
+
     project_repo.delete(db,project)
-    return f"El proyecto{project.name} del cliente {project.client.name} ha sido borrado correctamente"
+    return f"El proyecto{project_name} del cliente {client_name} ha sido borrado correctamente"

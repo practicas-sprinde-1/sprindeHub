@@ -12,6 +12,7 @@ def find_all(
 ) -> list[Client]:
     statement = (
         select(Client)
+        .where(Client.is_active.is_(True))
         .offset(offset)
         .limit(limit)
         .order_by(Client.id)
@@ -19,6 +20,20 @@ def find_all(
     return list(
         db.scalars(statement).all()
     )
+
+def find_all_archived(
+        db: Session,
+        offset: int = 0,
+        limit: int = 20,
+) -> list[Client]:
+    statement = (
+        select(Client)
+        .where(Client.is_active.is_(False))
+        .offset(offset)
+        .limit(limit)
+    )
+
+    return list(db.scalars(statement).all())
 
 
 def find_by_id(
