@@ -74,3 +74,26 @@ def delete(
         client_id: int
 ) -> None:
     client_service.delete_client(db, client_id)
+
+
+@router.patch(
+    "/{client_id}/archive",
+    response_model=ClientRead
+)
+def archive(
+        db: DbSession,
+        client_id: int,
+):
+    return client_service.archive_client(db, client_id)
+
+
+
+@router.patch(
+    "/{client_id}/restore",
+    response_model=ClientRead
+)
+def restore(
+        db: DbSession,
+        client_id: int,
+):
+    return client_service.restore_client(db, client_id)
