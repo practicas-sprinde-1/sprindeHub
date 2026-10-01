@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import client_router, project_router, environment_router, repository_router, domain_router
+from app.routers import client_router, project_router, environment_router, repository_router, domain_router, link_router
 
 app = FastAPI(
     title="SprindeHub API",
@@ -31,6 +31,12 @@ app.include_router(
     domain_router.router,
     prefix="/api/v1"
 )
+
+app.include_router(
+    link_router.router,
+    prefix="/api/v1"
+)
+
 
 
 
