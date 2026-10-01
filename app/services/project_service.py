@@ -88,6 +88,15 @@ def delete_project(
 )->str:
     project = get_project(db,project_id)
 
+    if project.environments:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "El proyecto aún contiene entornos. Borra los entornos primero. "
+                "Puedes archivar el proyecto en su lugar."
+            ),
+        )
+
     project_name = project.name
     client_name = project.client.name
 
