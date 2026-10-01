@@ -1,5 +1,8 @@
 import os
 
+from app.models.client import Client
+from app.models.project import Project
+
 os.environ["ENV_FILE"] = ".env.test"
 
 import pytest
@@ -15,12 +18,14 @@ from main import app
 @pytest.fixture(autouse=True)
 def clean_clients_table():
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM environments"))
         connection.execute(text("DELETE FROM projects"))
         connection.execute(text("DELETE FROM clients"))
 
     yield
 
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM environments"))
         connection.execute(text("DELETE FROM projects"))
         connection.execute(text("DELETE FROM clients"))
 
@@ -41,8 +46,9 @@ def api_client():
 
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
-def created_client(api_client):
+def created_client(api_client) -> Client:
     response = api_client.post(
         "/api/v1/clients",
         json={
@@ -57,7 +63,7 @@ def created_client(api_client):
 
 
 @pytest.fixture
-def archived_client(api_client):
+def archived_client(api_client) -> Client:
     create_response = api_client.post(
         "/api/v1/clients",
         json={
@@ -77,3 +83,68 @@ def archived_client(api_client):
     assert archive_response.status_code == status.HTTP_200_OK
     return archive_response.json()
 
+
+@pytest.fixture
+def created_project(
+        api_client,
+        created_client
+) -> Project:
+    response = api_client.post(
+        "/api/v1/projects",
+        json={
+            "name": "Proyecto conftest",
+            "description": "Descripción proyecto conftest",
+            "client_id": created_client["id"],
+        },
+    )
+    return response.json()
+
+
+@pytest.fixture
+def archived_project(
+        api_client,
+        created_client
+) -> Project:
+    response = api_client.post(
+        "/api/v1/projects",
+        json={
+            "name": "Proyecto archivado",
+            "description": "Descripción proyecto archivado",
+            "client_id": created_client["id"],
+        },
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    project = response.json()
+
+    archive_response = api_client.patch(
+        f"/api/v1/projects/{project['id']}/archive"
+    )
+
+    assert archive_response.status_code == status.HTTP_200_OK
+    return archive_response.json()
+
+
+@pytest.fixture
+def restored_project(
+        api_client,
+        created_client
+) -> Project:
+    response = api_client.post(
+        "/api/v1/projects",
+        json={
+            "name": "Proyecto restaurado",
+            "description": "Descripción proyecto restaurado",
+            "client_id": created_client["id"],
+        },
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    project = response.json()
+
+    restored_response = api_client.patch(
+        f"/api/v1/projects/{project['id']}/restored"
+    )
+
+    assert restored_response.status_code == status.HTTP_200_OK
+    return restored_response.json()
