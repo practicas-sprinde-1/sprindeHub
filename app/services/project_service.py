@@ -88,7 +88,7 @@ def delete_project(
 )->str:
     project = get_project(db,project_id)
 
-    has_dependencies:any =((
+    has_dependencies =any((
         project.environments,
         project.repositories,
         project.domains,
