@@ -11,6 +11,7 @@ from app.models.client import Client
 from app.models.project import Project
 from app.models.environment import Environment
 from app.models.repository import Repository
+from app.models.domain import Domain
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

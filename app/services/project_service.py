@@ -91,6 +91,7 @@ def delete_project(
     has_dependencies = any((
         project.environments,
         project.repositories,
+        project.domains
     ))
 
     if has_dependencies:

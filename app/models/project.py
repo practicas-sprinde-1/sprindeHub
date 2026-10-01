@@ -4,6 +4,7 @@ from sqlalchemy import String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database.base_class import Base
+from app.models.domain import Domain
 from app.models.repository import Repository
 
 if TYPE_CHECKING:
@@ -45,6 +46,10 @@ class Project(Base):
     )
 
     repositories: Mapped[list["Repository"]] = relationship(
+        back_populates="project"
+    )
+
+    domains: Mapped[list["Domain"]] = relationship(
         back_populates="project"
     )
 
