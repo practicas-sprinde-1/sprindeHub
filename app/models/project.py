@@ -7,12 +7,14 @@ from app.database.base_class import Base
 from app.models.domain import Domain
 from app.models.repository import Repository
 from app.models.link import Link
+from app.models.service import Service
 
 if TYPE_CHECKING:
     from app.models.client import Client
     from app.models.environment import Environment
     from app.models.repository import Repository
     from app.models.link import Link
+    from app.models.service import Service
 
 
 class Project(Base):
@@ -56,6 +58,10 @@ class Project(Base):
     )
 
     links: Mapped[list["Link"]] = relationship(
+        back_populates="project"
+    )
+
+    services: Mapped[list["Service"]] = relationship(
         back_populates="project"
     )
 
