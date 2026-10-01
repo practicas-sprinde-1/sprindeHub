@@ -10,6 +10,7 @@ from app.database.base_class import Base
 from app.models.client import Client
 from app.models.project import Project
 from app.models.environment import Environment
+from app.models.repository import Repository
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
