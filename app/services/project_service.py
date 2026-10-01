@@ -93,14 +93,15 @@ def delete_project(
         project.repositories,
         project.domains,
         project.links,
-        project.services
+        project.services,
+        project.commands
     ))
 
     if has_dependencies:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "El proyecto aún contiene entornos. Borra los entornos primero. "
+                "El proyecto aún contiene dependencias activas. Borra las depencencias primero. "
                 "Puedes archivar el proyecto en su lugar."
             ),
         )
