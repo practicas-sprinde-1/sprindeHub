@@ -4,10 +4,6 @@ from sqlalchemy import String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database.base_class import Base
-from app.models.domain import Domain
-from app.models.repository import Repository
-from app.models.link import Link
-from app.models.service import Service
 
 if TYPE_CHECKING:
     from app.models.client import Client
@@ -15,6 +11,8 @@ if TYPE_CHECKING:
     from app.models.repository import Repository
     from app.models.link import Link
     from app.models.service import Service
+    from app.models.command import Command
+    from app.models.domain import Domain
 
 
 class Project(Base):
@@ -62,6 +60,10 @@ class Project(Base):
     )
 
     services: Mapped[list["Service"]] = relationship(
+        back_populates="project"
+    )
+
+    commands: Mapped[list["Command"]] = relationship(
         back_populates="project"
     )
 
