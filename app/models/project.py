@@ -4,10 +4,12 @@ from sqlalchemy import String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database.base_class import Base
+from app.models.repository import Repository
 
 if TYPE_CHECKING:
     from app.models.client import Client
     from app.models.environment import Environment
+    from app.models.repository import Repository
 
 
 class Project(Base):
@@ -39,6 +41,10 @@ class Project(Base):
     )
 
     environments: Mapped[list["Environment"]] = relationship(
+        back_populates="project"
+    )
+
+    repositories: Mapped[list["Repository"]] = relationship(
         back_populates="project"
     )
 

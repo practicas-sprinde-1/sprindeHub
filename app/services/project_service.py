@@ -88,7 +88,12 @@ def delete_project(
 )->str:
     project = get_project(db,project_id)
 
-    if project.environments:
+    has_dependencies = any((
+        project.environments,
+        project.repositories,
+    ))
+
+    if has_dependencies:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
@@ -96,6 +101,7 @@ def delete_project(
                 "Puedes archivar el proyecto en su lugar."
             ),
         )
+
 
     project_name = project.name
     client_name = project.client.name
