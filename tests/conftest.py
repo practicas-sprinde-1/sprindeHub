@@ -18,6 +18,7 @@ from main import app
 @pytest.fixture(autouse=True)
 def clean_clients_table():
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM notes"))
         connection.execute(text("DELETE FROM commands"))
         connection.execute(text("DELETE FROM services"))
         connection.execute(text("DELETE FROM links"))
@@ -30,6 +31,7 @@ def clean_clients_table():
     yield
 
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM notes"))
         connection.execute(text("DELETE FROM commands"))
         connection.execute(text("DELETE FROM services"))
         connection.execute(text("DELETE FROM links"))

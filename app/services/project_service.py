@@ -94,7 +94,8 @@ def delete_project(
         project.domains,
         project.links,
         project.services,
-        project.commands
+        project.commands,
+        project.notes
     ))
 
     if has_dependencies:

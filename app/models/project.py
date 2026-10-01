@@ -13,6 +13,8 @@ if TYPE_CHECKING:
     from app.models.service import Service
     from app.models.command import Command
     from app.models.domain import Domain
+    from app.models.note import Note
+
 
 
 class Project(Base):
@@ -64,6 +66,10 @@ class Project(Base):
     )
 
     commands: Mapped[list["Command"]] = relationship(
+        back_populates="project"
+    )
+
+    notes: Mapped[list["Note"]] = relationship(
         back_populates="project"
     )
 
