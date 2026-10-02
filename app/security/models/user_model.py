@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
 
+from pydantic import EmailStr
 from sqlalchemy import Enum as SqlEnum, Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -28,7 +29,7 @@ class User(Base):
         autoincrement=True,
     )
 
-    email: Mapped[str] = mapped_column(
+    email: Mapped[EmailStr] = mapped_column(
         String(254),
         unique=True,
         nullable=False
