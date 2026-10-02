@@ -134,19 +134,12 @@ def get_active_user(
         )
     return user
 
-def update_self_user(
+def aux_check_data(
         db:Session,
-        user_id:int,
-        data:UserSelfUpdate
-)->User:
-    user= get_user(db,user_id)
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="El usuario está inactivo",
-        )
+        data: AdminUserUpdate | UserSelfUpdate,
+        user:User
 
-
+)->dict:
     updates = data.model_dump(
         exclude_unset=True,
         exclude_none=True
@@ -164,14 +157,27 @@ def update_self_user(
     if "username" in updates and updates["username"] != user.username:
         existing_user = user_repo.find_by_username(
             db,
-            str(updates["username"]),
+            updates["username"],
         )
         if existing_user is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Username ya registrado.",
             )
+    return updates
 
+def update_self_user(
+        db:Session,
+        user_id:int,
+        data:UserSelfUpdate
+)->User:
+    user = get_user(db, user_id)
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario está inactivo",
+        )
+    updates = aux_check_data(db,data,user)
     for field,value in updates.items():
         setattr(user,field,value)
 
@@ -236,33 +242,9 @@ def admin_update_user(
         user_id: int,
         data: AdminUserUpdate
 ) -> User:
+
     user = get_user(db, user_id)
-
-    updates = data.model_dump(
-        exclude_unset=True,
-        exclude_none=True
-    )
-
-    if "email" in updates and updates["email"] != user.email:
-        existing_user = user_repo.find_by_email(
-            db,
-            str(updates["email"]),
-        )
-        if existing_user is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email ya registrado.",
-            )
-    if "username" in updates and updates["username"] != user.username:
-        existing_user = user_repo.find_by_username(
-            db,
-            str(updates["username"]),
-        )
-        if existing_user is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Username ya registrado.",
-            )
+    updates = aux_check_data(db,data,user)
 
     for field, value in updates.items():
         setattr(user, field, value)
