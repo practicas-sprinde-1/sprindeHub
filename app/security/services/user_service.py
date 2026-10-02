@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from app.security.models.user_model import User
 from app.security.repositories import user_repo
-from app.security.schemas.user_token_schemas import UserRegister, UserLogin, Token
+from app.security.schemas.user_token_schemas import UserRegister, UserLogin, Token, UserSelfUpdate, PasswordChange, \
+    AdminUserCreate, AdminUserUpdate
 from app.security.utils import hash_password, verify_password, create_access_token
 from app.services import client_service
 
@@ -132,3 +133,141 @@ def get_active_user(
             detail="El usuario está inactivo",
         )
     return user
+
+def update_self_user(
+        db:Session,
+        user_id:int,
+        data:UserSelfUpdate
+)->User:
+    user= get_user(db,user_id)
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario está inactivo",
+        )
+
+
+    updates = data.model_dump(
+        exclude_unset=True,
+        exclude_none=True
+    )
+    if "email" in updates and updates["email"] != user.email:
+        existing_user = user_repo.find_by_email(
+            db,
+            str(updates["email"]),
+        )
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email ya registrado.",
+            )
+    if "username" in updates and updates["username"] != user.username:
+        existing_user = user_repo.find_by_username(
+            db,
+            str(updates["username"]),
+        )
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username ya registrado.",
+            )
+
+    for field,value in updates.items():
+        setattr(user,field,value)
+
+    return user_repo.save(db,user)
+
+def change_password(
+        db:Session,
+        user_id:int,
+        data: PasswordChange
+)->str:
+    user = get_user(db, user_id)
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="El usuario está inactivo",
+        )
+
+    if not verify_password(
+            data.current_password,
+            user.password_hash,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Las contraseñas no coinciden",
+        )
+    new_password = data.new_password
+    encrypted_new_pass = hash_password(new_password)
+
+    user.password_hash = encrypted_new_pass
+
+    user_repo.save(db,user)
+    return "Contraseña cambiada"
+
+def admin_create_user(
+        db:Session,
+        data:AdminUserCreate
+)->User:
+
+    if user_repo.find_by_email(db,str(data.email)):
+        raise HTTPException(
+            status_code= status.HTTP_409_CONFLICT,
+            detail= "Email ya registrado."
+        )
+    if user_repo.find_by_username(db,data.username):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="username ya registrado"
+        )
+    crypted_password = hash_password(data.password)
+    user = User(
+        email=data.email,
+        username=data.username,
+        password_hash=crypted_password,
+        role=data.role,
+        is_active=data.is_active,
+    )
+    return user_repo.save(db, user)
+
+
+def admin_update_user(
+        db: Session,
+        user_id: int,
+        data: AdminUserUpdate
+) -> User:
+    user = get_user(db, user_id)
+
+    updates = data.model_dump(
+        exclude_unset=True,
+        exclude_none=True
+    )
+
+    if "email" in updates and updates["email"] != user.email:
+        existing_user = user_repo.find_by_email(
+            db,
+            str(updates["email"]),
+        )
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email ya registrado.",
+            )
+    if "username" in updates and updates["username"] != user.username:
+        existing_user = user_repo.find_by_username(
+            db,
+            str(updates["username"]),
+        )
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username ya registrado.",
+            )
+
+    for field, value in updates.items():
+        setattr(user, field, value)
+
+    return user_repo.save(db, user)
+
+
+
