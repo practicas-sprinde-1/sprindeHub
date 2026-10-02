@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 
-from app.security.models import RoleType
+from app.security.models.user_model import RoleType
 
 
 class Token(BaseModel):

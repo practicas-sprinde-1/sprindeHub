@@ -16,6 +16,10 @@ from app.models.link import Link
 from app.models.service import Service
 from app.models.command import Command
 from app.models.note import Note
+from app.security.models.user_model import User
+from app.security.models.user_client_model import UserClient
+from app.security.models.log_model import Log
+
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

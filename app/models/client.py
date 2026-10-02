@@ -7,6 +7,7 @@ from app.database.base_class import Base
 
 if TYPE_CHECKING:
     from app.models.project import Project
+    from app.security.models.user_client_model import UserClient
 
 
 class Client(Base):
@@ -35,13 +36,17 @@ class Client(Base):
         unique=True
     )
 
-    projects: Mapped[list["Project"]] = relationship(
-        back_populates="client"
-    )
-
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=True,
         server_default="1",
     )
+
+    projects: Mapped[list["Project"]] = relationship(
+        back_populates="client"
+    )
+
+    user_clients:Mapped[list["UserClient"]] = relationship(back_populates="client")
+
+

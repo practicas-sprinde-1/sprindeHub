@@ -1,10 +1,15 @@
-import enum
 from datetime import datetime, timezone
 from enum import Enum
-from sqlalchemy import Enum as SqlEnum ,BigInteger, Boolean, DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Enum as SqlEnum, Boolean, DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base_class import Base
+
+if TYPE_CHECKING:
+    from app.security.models.user_client_model import UserClient
+
 
 #Elimina la etiqueta de la zona horaria con usando el .replace
 def utc_now_db() -> datetime:
@@ -40,8 +45,8 @@ class User(Base):
         nullable=False,
     )
 
-    role: Mapped[str] = mapped_column(
-        String(10),
+    role: Mapped[RoleType] = mapped_column(
+        SqlEnum(RoleType,name="role_type"),
         nullable=False,
         default="GUEST",
     )
@@ -64,3 +69,5 @@ class User(Base):
         onupdate=utc_now_db,
         nullable=False,
     )
+
+    user_clients:Mapped[list["UserClient"]] = relationship(back_populates="user")
