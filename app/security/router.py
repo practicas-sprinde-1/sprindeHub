@@ -5,10 +5,12 @@ from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
 from app.security.dependencies import get_active_current_user,require_admin
+from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
+from app.security.schemas.userClient_schema import UserClientRead, UserClientAccess
 from app.security.schemas.user_token_schemas import UserRegister, UserRead, UserLogin, UserSelfUpdate, PasswordChange, \
     AdminUserCreate, AdminUserUpdate, Token
-from app.security.services import user_service
+from app.security.services import user_service, user_client_service
 
 router_auth = APIRouter(
     prefix="/auth",
@@ -141,4 +143,71 @@ def admin_update_user(
 ):
     return user_service.admin_update_user(db,user_id, data)
 
+@router_admin.post(
+    "/user-clients/users/{user_id}/clients",
+    response_model=UserClientRead,
+    status_code=status.HTTP_201_CREATED
+)
 
+def assign_user_to_client(
+        db:DbSession,
+        user_id:int,
+        _:AdminUser,
+        data: UserClientAccess
+)->UserClient:
+    return user_client_service.assign_user_to_client(db, user_id, data)
+
+@router_admin.get(
+    "/user-clients/",
+    response_model=UserClientRead,
+    status_code=status.HTTP_200_OK
+)
+def get_user_client(
+        db:DbSession,
+        user_id:int,
+        client_id:int,
+        _:AdminUser
+)->UserClient:
+    return user_client_service.get_user_client(db, user_id, client_id)
+
+@router_admin.delete(
+    "/user-clients/users/{user_id}/clients/{client_id}",
+    status_code=status.HTTP_200_OK
+)
+def revoke_client_access(
+        db:DbSession,
+        user_id:int,
+        client_id:int,
+        _:AdminUser
+)->str:
+    return user_client_service.revoke_client_access(db, user_id, client_id)
+
+
+@router_admin.get(
+    "/user-clients/clients/{client_id}/users",
+    response_model=list[UserClientRead],
+    status_code=status.HTTP_200_OK
+)
+def get_user_client_by_client_id(
+        db:DbSession,
+        client_id:int,
+        _:AdminUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100),
+)->list[UserClient]:
+    return user_client_service.get_user_clients_by_client_id(db, client_id, offset, limit)
+
+
+@router_admin.get(
+    "/user-clients/{user_id}",
+    response_model=list[UserClientRead],
+    status_code=status.HTTP_200_OK
+)
+def get_user_client_by_user_id(
+        db:DbSession,
+        user_id:int,
+        _:AdminUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100),
+)->list[UserClient]:
+    return user_client_service.get_user_clients_by_user_id(db, user_id, offset, limit)
