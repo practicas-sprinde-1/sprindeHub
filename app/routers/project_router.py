@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.client import Client
+from app.models.project import Project
 from app.schemas.project_schema import ProjectCreate,ProjectUpdate,ProjectRead
+from app.security.dependencies import require_project_access, require_client_access, get_active_current_user
+from app.security.models.user_model import RoleType, User
 from app.services import project_service
 
 router = APIRouter(
@@ -17,26 +21,43 @@ DbSession= Annotated[
     Depends(get_db)
 ]
 
+CurrentProject = Annotated[
+    Project,Depends(require_project_access)
+]
+
+CurrentClient = Annotated[
+    Client,Depends(require_client_access)
+]
+
+CurrentUser = Annotated[
+    User,
+    Depends(get_active_current_user),
+]
+
+
 @router.get(
     "",
     response_model=list[ProjectRead]
 )
 def find_all(
         db:DbSession,
+        client:CurrentClient,
+        current_user: CurrentUser,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return project_service.get_projects(db,offset,limit)
+    if current_user.role == RoleType.ADMIN:
+        return project_service.get_projects(db,offset,limit)
+    return project_service.get_projects_by_id_client(db,client.id,offset, limit)
 
 @router.get(
     "/{project_id}",
     response_model=ProjectRead
 )
 def find_by_id(
-        db:DbSession,
-        project_id:int
+        project:CurrentProject
 ):
-    return project_service.get_project(db,project_id)
+    return project
 
 @router.get(
     "/client/{client_id}",
@@ -44,11 +65,12 @@ def find_by_id(
 )
 def find_by_client_id(
         db:DbSession,
-        client_id:int,
+        _:CurrentProject,
+        client:CurrentClient,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return project_service.get_projects_by_id_client(db,client_id,offset,limit)
+    return project_service.get_projects_by_id_client(db,client.id,offset,limit)
 
 @router.post(
     "",
@@ -57,7 +79,7 @@ def find_by_client_id(
 )
 def create(
         db: DbSession,
-        data: ProjectCreate
+        data: ProjectCreate,
 ):
     return project_service.create_project(db, data)
 

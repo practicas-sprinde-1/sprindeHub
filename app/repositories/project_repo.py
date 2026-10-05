@@ -20,6 +20,7 @@ def find_all(
     return list(
         db.scalars(statement).all()
     )
+
 def find_all_archived(
         db: Session,
         offset: int = 0,
