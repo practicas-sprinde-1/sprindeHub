@@ -97,3 +97,12 @@ def save(
     db.commit()
     db.refresh(user)
     return user
+
+
+def delete(
+        db: Session,
+       user: User
+) -> None:
+    db.delete(user)
+    db.commit()
+
