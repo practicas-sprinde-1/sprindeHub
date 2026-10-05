@@ -6,10 +6,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.client import Client
+from app.models.project import Project
+from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import RoleType, User
 from app.security.repositories import user_repo
 from app.security.utils import decode_access_token
-
+from app.services import client_service, project_service
 
 # auto_error=False evita que se cree el propio mensaje de error.
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -82,7 +85,7 @@ def require_admin(
 
     return current_user
 
-def require_modifier_rol(
+def require_modifier_role(
     current_user: Annotated[User, Depends(get_active_current_user)],
 ) -> User:
     if current_user.role not in {RoleType.ADMIN , RoleType.USER}:
@@ -92,4 +95,62 @@ def require_modifier_rol(
         )
 
     return current_user
+
+def check_client_access(
+        db:Session,
+        current_user:User,
+        client_id:int
+)->None:
+
+    if current_user.role== RoleType.ADMIN:
+        return
+
+    #Equivale a:
+    # SELECT * FROM user_clients
+    # WHERE user_id = current_user.id
+    # AND client_id = client_id;
+    user_client = db.get(
+        UserClient,
+        (current_user.id,client_id)
+    )
+
+    if user_client is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No estás autorizado a ver los archivos del cliente.",
+        )
+
+def require_client_access(
+        client_id:int,
+        db:Annotated[Session,Depends(get_db)],
+        current_user: Annotated[User, Depends(get_active_current_user)]
+)->Client:
+
+    client = client_service.get_client(db,client_id)
+
+    check_client_access(
+        db,
+        current_user,
+        client.id
+    )
+
+    return client
+
+def require_project_access(
+        project_id:int,
+        db:Annotated[Session,Depends(get_db)],
+        current_user: Annotated[User, Depends(get_active_current_user)]
+)->Project:
+    project = project_service.get_project(db,project_id)
+
+    check_client_access(
+        db,
+        current_user,
+        project.client_id
+    )
+
+    return project
+
+
+
 
