@@ -55,17 +55,6 @@ def find_by_client_id(
         db.scalars(statement).all()
     )
 
-
-def save(
-        db: Session,
-        user_client: UserClient,
-
-) -> UserClient:
-    db.add(user_client)
-    db.commit()
-    db.refresh(user_client)
-    return user_client
-
 def find_by_ids(
         db:Session,
         user_id:int,
@@ -77,6 +66,19 @@ def find_by_ids(
     )
 
     return db.scalar(statement)
+
+
+
+def save(
+        db: Session,
+        user_client: UserClient,
+
+) -> UserClient:
+    db.add(user_client)
+    db.commit()
+    db.refresh(user_client)
+    return user_client
+
 
 def delete(
         db:Session,
