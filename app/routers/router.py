@@ -4,6 +4,7 @@ from . import (
     repository_router, domain_router, link_router,
     service_router, command_router, note_router
 )
+from ..security import router
 
 api_router = APIRouter()
 
@@ -16,3 +17,7 @@ api_router.include_router(link_router.router, tags=["links"])
 api_router.include_router(service_router.router, tags=["services"])
 api_router.include_router(command_router.router, tags=["commands"])
 api_router.include_router(note_router.router, tags=["notes"])
+
+api_router.include_router(router.router_auth, tags=["auth"])
+api_router.include_router(router.router_admin, tags=["admin"])
+api_router.include_router(router.router_users, tags=["users"])
