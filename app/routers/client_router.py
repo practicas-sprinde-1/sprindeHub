@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.client import Client
 from app.schemas.client_schema import ClientRead, ClientCreate, ClientUpdate
+from app.security.dependencies import require_client_access, require_modifier_role, require_admin, \
+    get_active_current_user
+from app.security.models.user_model import User, RoleType
 from app.services import client_service
 
 router = APIRouter(
@@ -17,6 +21,25 @@ DbSession = Annotated[
     Depends(get_db)
 ]
 
+ClientWithAccess = Annotated[
+    Client,Depends(require_client_access)
+]
+
+CurrentWriter = Annotated[
+    User, Depends(require_modifier_role)
+]
+
+CurrentAdmin = Annotated[
+    User, Depends(require_admin)
+]
+
+CurrentUser = Annotated[
+    User,
+    Depends(get_active_current_user),
+]
+
+
+
 
 @router.get(
     "",
@@ -24,10 +47,14 @@ DbSession = Annotated[
 )
 def find_all(
         db: DbSession,
+        user:CurrentUser,
         offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100)
+        limit: int = Query(default=20, ge=1, le=100),
 ):
-    return client_service.get_clients(db, offset, limit)
+    if user.role == RoleType.ADMIN:
+        return client_service.get_clients(db, offset, limit)
+
+    return client_service.get_clients_by_user(db,user.id,offset, limit)
 
 
 @router.get(
@@ -35,10 +62,9 @@ def find_all(
     response_model=ClientRead
 )
 def find_by_id(
-        db: DbSession,
-        client_id: int
+        client:ClientWithAccess
 ):
-    return client_service.get_client(db, client_id)
+    return client
 
 
 @router.post(
@@ -48,7 +74,8 @@ def find_by_id(
 )
 def create(
         db: DbSession,
-        data: ClientCreate
+        data: ClientCreate,
+        _:CurrentAdmin,
 ):
     return client_service.create_client(db, data)
 
@@ -59,10 +86,11 @@ def create(
 )
 def update(
         db: DbSession,
-        client_id: int,
-        data: ClientUpdate
+        data: ClientUpdate,
+        _:CurrentWriter,
+        client:ClientWithAccess,
 ):
-    return client_service.update_client(db, client_id, data)
+    return client_service.update_client(db, client.id, data)
 
 
 @router.delete(
@@ -71,9 +99,10 @@ def update(
 )
 def delete(
         db: DbSession,
-        client_id: int
+        _: CurrentWriter,
+        client: ClientWithAccess,
 ) -> None:
-    client_service.delete_client(db, client_id)
+    client_service.delete_client(db, client.id)
 
 
 @router.patch(
@@ -82,9 +111,10 @@ def delete(
 )
 def archive(
         db: DbSession,
-        client_id: int,
+        _: CurrentWriter,
+        client: ClientWithAccess,
 ):
-    return client_service.archive_client(db, client_id)
+    return client_service.archive_client(db, client.id)
 
 
 
@@ -94,6 +124,7 @@ def archive(
 )
 def restore(
         db: DbSession,
-        client_id: int,
+        _: CurrentWriter,
+        client: ClientWithAccess,
 ):
-    return client_service.restore_client(db, client_id)
+    return client_service.restore_client(db, client.id)

@@ -29,6 +29,14 @@ def get_clients(
 ) -> list[Client]:
     return client_repo.find_all(db, offset, limit)
 
+def get_clients_by_user(
+        db: Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Client]:
+    return client_repo.find_all_by_user(db, user_id, offset, limit)
+
 def get_archived_clients(
         db: Session,
         offset: int,
