@@ -35,6 +35,14 @@ def get_links(
 )->list[Link]:
     return link_repo.find_all(db,offset,limit)
 
+def get_links_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Link]:
+    return link_repo.find_all_by_users(db,user_id,offset,limit)
+
 def create_link(
         db:Session,
         data:LinkCreate
