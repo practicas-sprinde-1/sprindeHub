@@ -35,6 +35,14 @@ def get_commands(
 )->list[Command]:
     return command_repo.find_all(db,offset,limit)
 
+def get_commands_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Command]:
+    return command_repo.find_all_by_users(db,user_id,offset,limit)
+
 def create_command(
         db:Session,
         data:CommandCreate
