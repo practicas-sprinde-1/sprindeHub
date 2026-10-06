@@ -36,6 +36,14 @@ def get_projects(
 )->list[Project]:
     return project_repo.find_all(db,offset,limit)
 
+def get_projects_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Project]:
+    return project_repo.find_all_by_users(db,user_id,offset,limit)
+
 
 
 def get_archived_projects(
