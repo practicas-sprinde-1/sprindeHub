@@ -82,7 +82,7 @@ def create(
         current_user:CurrentWriter
 ):
     require_project_access(data.project_id,db,current_user)
-    return environment_service.create_environment(db, data)
+    return environment_service.create_environment(db, data,current_user)
 
 
 @router.patch(
@@ -101,7 +101,7 @@ def update(
     if data.project_id is not None:
         require_project_access(data.project_id, db, current_user)
 
-    return environment_service.update_environment(db, environment_id, data)
+    return environment_service.update_environment(db, environment_id, data,current_user)
 
 
 @router.delete(
@@ -115,5 +115,5 @@ def delete(
 ) -> None:
     environment = environment_service.get_environment(db,environment_id)
     require_project_access(environment.project_id,db,current_user)
-    environment_service.delete_environment(db, environment_id)
+    environment_service.delete_environment(db, environment_id,current_user)
 
