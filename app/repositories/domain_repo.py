@@ -70,8 +70,7 @@ def save(
 
 ) -> Domain:
     db.add(domain)
-    db.commit()
-    db.refresh(domain)
+    db.flush()
     return domain
 
 def delete(
@@ -79,4 +78,3 @@ def delete(
         domain: Domain,
 ) -> None:
     db.delete(domain)
-    db.commit()

@@ -70,8 +70,7 @@ def save(
 
 ) -> Repository:
     db.add(repository)
-    db.commit()
-    db.refresh(repository)
+    db.flush()
     return repository
 
 def delete(
@@ -79,4 +78,3 @@ def delete(
         repository: Repository,
 ) -> None:
     db.delete(repository)
-    db.commit()

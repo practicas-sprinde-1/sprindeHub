@@ -69,8 +69,7 @@ def save(
 
 ) -> Environment:
     db.add(environment)
-    db.commit()
-    db.refresh(environment)
+    db.flush()
     return environment
 
 def delete(
@@ -78,5 +77,4 @@ def delete(
         environment: Environment,
 ) -> None:
     db.delete(environment)
-    db.commit()
 

@@ -70,8 +70,7 @@ def save(
 
 ) -> Link:
     db.add(link)
-    db.commit()
-    db.refresh(link)
+    db.flush()
     return link
 
 def delete(
@@ -79,4 +78,3 @@ def delete(
         link: Link,
 ) -> None:
     db.delete(link)
-    db.commit()

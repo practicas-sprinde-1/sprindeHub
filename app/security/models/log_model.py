@@ -23,6 +23,8 @@ class EntityType(str,Enum):
     PROJECT="PROJECT"
     REPOSITORY="REPOSITORY"
     SERVICE="SERVICE"
+    USER="USER"
+
 
 class Log(Base):
     __tablename__ = "logs"

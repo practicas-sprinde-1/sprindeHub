@@ -92,8 +92,7 @@ def save(
 
 ) -> Project:
     db.add(project)
-    db.commit()
-    db.refresh(project)
+    db.flush()
     return project
 
 
@@ -102,4 +101,3 @@ def delete(
         project: Project,
 ) -> None:
     db.delete(project)
-    db.commit()

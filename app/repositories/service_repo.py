@@ -70,8 +70,7 @@ def save(
 
 ) -> Service:
     db.add(service)
-    db.commit()
-    db.refresh(service)
+    db.flush()
     return service
 
 def delete(
@@ -79,4 +78,3 @@ def delete(
         service: Service,
 ) -> None:
     db.delete(service)
-    db.commit()

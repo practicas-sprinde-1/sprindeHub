@@ -70,8 +70,7 @@ def save(
 
 ) -> Command:
     db.add(commands)
-    db.commit()
-    db.refresh(commands)
+    db.flush()
     return commands
 
 def delete(
@@ -79,4 +78,3 @@ def delete(
         commands: Command,
 ) -> None:
     db.delete(commands)
-    db.commit()

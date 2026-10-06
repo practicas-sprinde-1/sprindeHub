@@ -71,8 +71,7 @@ def save(
 
 ) -> Note:
     db.add(note)
-    db.commit()
-    db.refresh(note)
+    db.flush()
     return note
 
 def delete(
@@ -80,4 +79,3 @@ def delete(
         note: Note,
 ) -> None:
     db.delete(note)
-    db.commit()

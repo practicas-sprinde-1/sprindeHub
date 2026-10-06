@@ -68,8 +68,7 @@ def save(
 
 ) -> Client:
     db.add(client)
-    db.commit()
-    db.refresh(client)
+    db.flush()
     return client
 
 
@@ -78,4 +77,3 @@ def delete(
         client: Client,
 ) -> None:
     db.delete(client)
-    db.commit()
