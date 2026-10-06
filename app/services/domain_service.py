@@ -35,6 +35,14 @@ def get_domains(
 )->list[Domain]:
     return domain_repo.find_all(db,offset,limit)
 
+def get_domains_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Domain]:
+    return domain_repo.find_all_by_users(db,user_id,offset,limit)
+
 def create_domain(
         db:Session,
         data:DomainCreate

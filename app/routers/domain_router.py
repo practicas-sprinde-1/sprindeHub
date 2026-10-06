@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.project import Project
 from app.schemas.domain_schema import DomainRead,DomainCreate,DomainUpdate
+from app.security.dependencies import get_active_current_user, require_project_access, require_modifier_role
+from app.security.models.user_model import User, RoleType
 from app.services import domain_service
 
 router = APIRouter(
@@ -17,16 +20,35 @@ DbSession = Annotated[
     Depends(get_db)
 ]
 
+CurrentUser = Annotated[
+    User,Depends(get_active_current_user)
+]
+
+CurrentProject = Annotated[
+    Project,Depends(require_project_access)
+]
+
+CurrentWriter = Annotated[
+    User,Depends(require_modifier_role)
+]
+
+
+
+
 @router.get(
     "",
     response_model=list[DomainRead]
 )
 def find_all(
         db:DbSession,
+        current_user:CurrentUser,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
+
 ):
-    return domain_service.get_domains(db,offset,limit)
+    if current_user.role == RoleType.ADMIN:
+        return domain_service.get_domains(db,offset,limit)
+    return domain_service.get_domains_by_users(db,current_user.id,offset, limit)
 
 @router.get(
     "/{domain_id}",
@@ -34,9 +56,12 @@ def find_all(
 )
 def find_by_id(
         db:DbSession,
-        domain_id:int
+        domain_id:int,
+        current_user:CurrentUser
 ):
-    return domain_service.get_domain(db,domain_id)
+    domain = domain_service.get_domain(db,domain_id)
+    require_project_access(domain.project_id,db,current_user)
+    return domain
 
 @router.get(
     "/project/{project_id}",
@@ -44,11 +69,11 @@ def find_by_id(
 )
 def find_by_project_id(
         db:DbSession,
-        project_id:int,
+        current_project:CurrentProject,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return domain_service.get_domain_by_id_project(db,project_id,offset,limit)
+    return domain_service.get_domain_by_id_project(db,current_project.id,offset,limit)
 
 @router.post(
     "",
@@ -57,8 +82,10 @@ def find_by_project_id(
 )
 def create(
         db: DbSession,
-        data: DomainCreate
+        data: DomainCreate,
+        current_user: CurrentWriter,
 ):
+    require_project_access(data.project_id,db,current_user)
     return domain_service.create_domain(db, data)
 
 
@@ -69,10 +96,16 @@ def create(
 def update(
         db: DbSession,
         domain_id: int,
-        data: DomainUpdate
+        data: DomainUpdate,
+        current_user:CurrentWriter
 ):
-    return domain_service.update_domain(db, domain_id, data)
+    domain = domain_service.get_domain(db,domain_id)
+    require_project_access(domain.project_id,db,current_user)
 
+    if data.project_id is not None:
+        require_project_access(data.project_id, db, current_user)
+
+    return domain_service.update_domain(db, domain_id, data)
 
 @router.delete(
     "/{domain_id}",
@@ -80,7 +113,10 @@ def update(
 )
 def delete(
         db: DbSession,
-        domain_id: int
+        domain_id: int,
+        current_user:CurrentWriter,
 ) -> None:
+    domain = domain_service.get_domain(db,domain_id)
+    require_project_access(domain.project_id,db,current_user)
     domain_service.delete_domain(db, domain_id)
 
