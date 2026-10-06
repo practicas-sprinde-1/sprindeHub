@@ -35,6 +35,15 @@ def get_services(
 )->list[Service]:
     return service_repo.find_all(db,offset,limit)
 
+def get_services_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Service]:
+    return service_repo.find_all_by_users(db,user_id,offset,limit)
+
+
 def create_service(
         db:Session,
         data:ServiceCreate
