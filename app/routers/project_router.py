@@ -92,7 +92,7 @@ def create(
 ):
     check_client_access(db, current_user, data.client_id)
 
-    return project_service.create_project(db, data)
+    return project_service.create_project(db, data,current_user)
 
 
 @router.patch(
@@ -108,7 +108,7 @@ def update(
     if data.client_id is not None:
         check_client_access(db, current_user, data.client_id)
 
-    return project_service.update_project(db, current_project.id, data)
+    return project_service.update_project(db, current_project.id, data,current_user)
 
 
 @router.delete(
@@ -117,10 +117,10 @@ def update(
 )
 def delete(
         db: DbSession,
-        _: CurrentWriter,
+        current_user: CurrentWriter,
         current_project: CurrentProject
 ) -> None:
-    project_service.delete_project(db, current_project.id)
+    project_service.delete_project(db, current_project.id,current_user)
 
 
 @router.patch(
@@ -129,10 +129,10 @@ def delete(
 )
 def archive(
         db: DbSession,
-        _: CurrentWriter,
+        current_user: CurrentWriter,
         current_project: CurrentProject
 ):
-    return project_service.archive_project(db, current_project.id)
+    return project_service.archive_project(db, current_project.id,current_user)
 
 
 @router.patch(
@@ -141,7 +141,7 @@ def archive(
 )
 def restore(
         db: DbSession,
-        _: CurrentWriter,
+        current_user: CurrentWriter,
         current_project: CurrentProject
 ):
-    return project_service.restore_project(db, current_project.id)
+    return project_service.restore_project(db, current_project.id,current_user)
