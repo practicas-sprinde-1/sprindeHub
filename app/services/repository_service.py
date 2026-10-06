@@ -105,7 +105,7 @@ def update_repository(
         log_service.register_log(
             db=db,
             user_id=current_user.id,
-            action=ActionType.CREATE,
+            action=ActionType.UPDATE,
             affected_entity=EntityType.REPOSITORY,
             affected_entity_id=repository.id
         )
@@ -131,7 +131,7 @@ def delete_repository(
         log_service.register_log(
             db=db,
             user_id=current_user.id,
-            action=ActionType.CREATE,
+            action=ActionType.DELETE,
             affected_entity=EntityType.REPOSITORY,
             affected_entity_id=repository.id
         )

@@ -128,7 +128,7 @@ def delete_note(
         log_service.register_log(
             db=db,
             user_id=current_user.id,
-            action=ActionType.UPDATE,
+            action=ActionType.DELETE,
             affected_entity=EntityType.NOTE,
             affected_entity_id=note.id
         )

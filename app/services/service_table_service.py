@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from app.models.service import Service
 from app.repositories import service_repo
 from app.schemas.service_schema import ServiceCreate,ServiceUpdate
+from app.security.models.log_model import ActionType, EntityType
+from app.security.models.user_model import User
+from app.security.services import log_service
 from app.services import project_service
 
 def get_service(
@@ -46,7 +49,8 @@ def get_services_by_users(
 
 def create_service(
         db:Session,
-        data:ServiceCreate
+        data:ServiceCreate,
+        current_user:User
 )->Service:
 
 
@@ -56,12 +60,29 @@ def create_service(
         name=data.name,
         project_id=project.id,
     )
-    return service_repo.save(db,service)
+    try:
+        service_repo.save(db, service)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.CREATE,
+            affected_entity=EntityType.SERVICE,
+            affected_entity_id=service.id
+        )
+        db.commit()
+        db.refresh(service)
+        return service
+
+    except Exception:
+        db.rollback()
+        raise
 
 def update_service(
         db:Session,
         service_id:int,
-        data:ServiceUpdate
+        data:ServiceUpdate,
+        current_user:User
 )->Service:
     service = get_service(db,service_id)
 
@@ -74,16 +95,52 @@ def update_service(
     for field,value in updates.items():
         setattr(service,field,value)
 
-    return service_repo.save(db,service)
+    try:
+        service_repo.save(db, service)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.UPDATE,
+            affected_entity=EntityType.SERVICE,
+            affected_entity_id=service.id
+        )
+        db.commit()
+        db.refresh(service)
+        return service
+
+    except Exception:
+        db.rollback()
+        raise
 
 def delete_service(
         db:Session,
-        service_id:int
+        service_id:int,
+        current_user:User
 )->str:
     service = get_service(db,service_id)
     name_project = service.project.name
 
-    service_repo.delete(db,service)
-    return f"El servicio del proyecto {name_project} ha sido borrado correctamente"
+    try:
+        service_repo.delete(db, service)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.DELETE,
+            affected_entity=EntityType.SERVICE,
+            affected_entity_id=service.id
+        )
+        db.commit()
+        return f"El servicio del proyecto {name_project} ha sido borrado correctamente"
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+
+
+
 
 

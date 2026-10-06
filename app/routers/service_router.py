@@ -82,7 +82,7 @@ def create(
         current_user:CurrentWriter
 ):
     require_project_access(data.project_id,db,current_user)
-    return service_table_service.create_service(db, data)
+    return service_table_service.create_service(db, data,current_user)
 
 
 @router.patch(
@@ -101,7 +101,7 @@ def update(
     if data.project_id is not None:
         require_project_access(data.project_id,db,current_user)
 
-    return service_table_service.update_service(db, service_id, data)
+    return service_table_service.update_service(db, service_id, data,current_user)
 
 
 @router.delete(
@@ -115,5 +115,5 @@ def delete(
 ) -> None:
     service = service_table_service.get_service(db,service_id)
     require_project_access(service.project_id,db,current_user)
-    service_table_service.delete_service(db, service_id)
+    service_table_service.delete_service(db, service_id,current_user)
 
