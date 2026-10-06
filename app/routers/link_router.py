@@ -82,7 +82,7 @@ def create(
         current_user:CurrentWriter
 ):
     require_project_access(data.project_id,db,current_user)
-    return link_service.create_link(db, data)
+    return link_service.create_link(db, data,current_user)
 
 
 @router.patch(
@@ -100,7 +100,7 @@ def update(
 
     if data.project_id is not None:
         require_project_access(data.project_id,db,current_user)
-    return link_service.update_link(db, link_id, data)
+    return link_service.update_link(db, link_id, data,current_user)
 
 
 @router.delete(
@@ -114,5 +114,5 @@ def delete(
 ) -> None:
     link = link_service.get_link(db,link_id)
     require_project_access(link.project_id,db,current_user)
-    link_service.delete_link(db, link_id)
+    link_service.delete_link(db, link_id,current_user)
 
