@@ -82,7 +82,7 @@ def create(
         current_user:CurrentWriter
 ):
     require_project_access(data.project_id,db,current_user)
-    return repository_service.create_repository(db, data)
+    return repository_service.create_repository(db, data,current_user)
 
 
 @router.patch(
@@ -101,7 +101,7 @@ def update(
     if data.project_id is not None:
         require_project_access(data.project_id,db,current_user)
 
-    return repository_service.update_repository(db, repository_id, data)
+    return repository_service.update_repository(db, repository_id, data,current_user)
 
 
 @router.delete(
@@ -115,5 +115,5 @@ def delete(
 ) -> None:
     repository = repository_service.get_repository(db,repository_id)
     require_project_access(repository.project_id,db,current_user)
-    repository_service.delete_repository(db, repository_id)
+    repository_service.delete_repository(db, repository_id,current_user)
 
