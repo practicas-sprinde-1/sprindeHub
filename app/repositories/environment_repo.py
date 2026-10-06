@@ -2,6 +2,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.environment import Environment
+from app.security.models.user_client_model import UserClient
+
 
 def find_all(
         db: Session,
@@ -11,6 +13,24 @@ def find_all(
 ) -> list[Environment]:
     statement = (
         select(Environment)
+        .offset(offset)
+        .limit(limit)
+        .order_by(Environment.id)
+    )
+    return list(
+        db.scalars(statement).all()
+    )
+def find_all_by_users(
+        db: Session,
+        user_id:int,
+        offset: int = 0,
+        limit: int = 20,
+
+) -> list[Environment]:
+    statement = (
+        select(Environment)
+        .join(UserClient,UserClient.client_id==Environment.project.client_id)
+        .where(UserClient.user_id==user_id)
         .offset(offset)
         .limit(limit)
         .order_by(Environment.id)

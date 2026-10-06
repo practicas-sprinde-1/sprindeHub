@@ -35,6 +35,15 @@ def get_environments(
 )->list[Environment]:
     return environment_repo.find_all(db,offset,limit)
 
+def get_environments_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Environment]:
+    return environment_repo.find_all_by_users(db,user_id,offset,limit)
+
+
 def create_environment(
         db:Session,
         data:EnvironmentCreate
