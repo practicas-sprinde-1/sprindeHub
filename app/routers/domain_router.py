@@ -86,7 +86,7 @@ def create(
         current_user: CurrentWriter,
 ):
     require_project_access(data.project_id,db,current_user)
-    return domain_service.create_domain(db, data)
+    return domain_service.create_domain(db, data,current_user)
 
 
 @router.patch(
@@ -105,7 +105,7 @@ def update(
     if data.project_id is not None:
         require_project_access(data.project_id, db, current_user)
 
-    return domain_service.update_domain(db, domain_id, data)
+    return domain_service.update_domain(db, domain_id, data,current_user)
 
 @router.delete(
     "/{domain_id}",
@@ -118,5 +118,5 @@ def delete(
 ) -> None:
     domain = domain_service.get_domain(db,domain_id)
     require_project_access(domain.project_id,db,current_user)
-    domain_service.delete_domain(db, domain_id)
+    domain_service.delete_domain(db, domain_id,current_user)
 
