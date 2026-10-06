@@ -82,7 +82,7 @@ def create(
         current_user:CurrentWriter
 ):
     require_project_access(data.project_id,db,current_user)
-    return note_service.create_note(db, data)
+    return note_service.create_note(db, data,current_user)
 
 
 @router.patch(
@@ -100,7 +100,7 @@ def update(
 
     if data.project_id is not None:
         require_project_access(data.project_id,db,current_user)
-    return note_service.update_note(db, note_id, data)
+    return note_service.update_note(db, note_id, data,current_user)
 
 
 @router.delete(
@@ -114,5 +114,5 @@ def delete(
 ) -> None:
     note = note_service.get_note(db, note_id)
     require_project_access(note.project_id, db, current_user)
-    note_service.delete_note(db, note_id)
+    note_service.delete_note(db, note_id,current_user)
 

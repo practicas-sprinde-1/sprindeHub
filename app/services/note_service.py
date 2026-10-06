@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from app.models.note import Note
 from app.repositories import note_repo
 from app.schemas.note_schema import NoteCreate,NoteUpdate
+from app.security.models.log_model import ActionType, EntityType
+from app.security.models.user_model import User
+from app.security.services import log_service
 from app.services import project_service
 
 def get_note(
@@ -45,7 +48,8 @@ def get_notes_by_users(
 
 def create_note(
         db:Session,
-        data:NoteCreate
+        data:NoteCreate,
+        current_user:User
 )->Note:
 
 
@@ -56,12 +60,29 @@ def create_note(
         project_id=project.id,
         content=data.content
     )
-    return note_repo.save(db,note)
+    try:
+        note_repo.save(db, note)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.CREATE,
+            affected_entity=EntityType.NOTE,
+            affected_entity_id=note.id
+        )
+        db.commit()
+        db.refresh(note)
+        return note
+    except Exception:
+        db.rollback()
+        raise
+
 
 def update_note(
         db:Session,
         note_id:int,
-        data:NoteUpdate
+        data:NoteUpdate,
+        current_user:User
 )->Note:
     note = get_note(db,note_id)
 
@@ -74,16 +95,52 @@ def update_note(
     for field,value in updates.items():
         setattr(note,field,value)
 
-    return note_repo.save(db,note)
+    try:
+        note_repo.save(db, note)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.UPDATE,
+            affected_entity=EntityType.NOTE,
+            affected_entity_id=note.id
+        )
+        db.commit()
+        db.refresh(note)
+        return note
+    except Exception:
+        db.rollback()
+        raise
+
+
 
 def delete_note(
         db:Session,
-        note_id:int
+        note_id:int,
+        current_user:User
 )->str:
     note = get_note(db,note_id)
     description_project = note.project.description
 
-    note_repo.delete(db,note)
-    return f"La nota del proyecto {description_project} ha sido borrada correctamente"
+    try:
+        note_repo.delete(db, note)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.UPDATE,
+            affected_entity=EntityType.NOTE,
+            affected_entity_id=note.id
+        )
+        db.commit()
+        return f"La nota del proyecto {description_project} ha sido borrada correctamente"
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+
+
 
 
