@@ -75,9 +75,9 @@ def find_by_id(
 def create(
         db: DbSession,
         data: ClientCreate,
-        _:CurrentAdmin,
+        current_user:CurrentAdmin,
 ):
-    return client_service.create_client(db, data)
+    return client_service.create_client(db, data,current_user)
 
 
 @router.patch(
@@ -87,22 +87,22 @@ def create(
 def update(
         db: DbSession,
         data: ClientUpdate,
-        _:CurrentWriter,
+        current_user:CurrentWriter,
         client:ClientWithAccess,
 ):
-    return client_service.update_client(db, client.id, data)
+    return client_service.update_client(db, client.id, data,current_user)
 
 
 @router.delete(
     "/{client_id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_200_OK
 )
 def delete(
         db: DbSession,
-        _: CurrentWriter,
+        current_user: CurrentWriter,
         client: ClientWithAccess,
-) -> None:
-    client_service.delete_client(db, client.id)
+) -> str:
+   return client_service.delete_client(db, client.id,current_user)
 
 
 @router.patch(
@@ -111,10 +111,10 @@ def delete(
 )
 def archive(
         db: DbSession,
-        _: CurrentWriter,
+        current_user: CurrentWriter,
         client: ClientWithAccess,
 ):
-    return client_service.archive_client(db, client.id)
+    return client_service.archive_client(db, client.id,current_user)
 
 
 
@@ -124,7 +124,7 @@ def archive(
 )
 def restore(
         db: DbSession,
-        _: CurrentWriter,
+        current_user: CurrentWriter,
         client: ClientWithAccess,
 ):
-    return client_service.restore_client(db, client.id)
+    return client_service.restore_client(db, client.id,current_user)

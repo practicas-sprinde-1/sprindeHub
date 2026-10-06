@@ -41,7 +41,6 @@ def get_logs_by_entity(
 )->list[Log]:
     return log_repo.find_all_by_entity(db,entity_id,affected_entity,offset,limit)
 
-
 def register_log(
         db:Session,
         user_id:int,
