@@ -11,7 +11,7 @@ from app.security.models.user_model import User
 from app.security.schemas.log_schema import LogRead
 from app.security.schemas.userClient_schema import UserClientRead, UserClientAccess
 from app.security.schemas.user_token_schemas import UserRegister, UserRead, UserLogin, UserSelfUpdate, PasswordChange, \
-    AdminUserCreate, AdminUserUpdate, Token
+    AdminUserCreate, AdminUserUpdate, Token, RefreshTokenRequest, AccessToken
 from app.security.services import user_service, user_client_service, log_service
 
 router_auth = APIRouter(
@@ -70,6 +70,17 @@ def login(
         data: UserLogin
 ):
     return user_service.login_user(db, data)
+
+@router_auth.post(
+    "/refresh",
+    response_model=AccessToken,
+    status_code=status.HTTP_200_OK
+)
+def refresh(
+        db:DbSession,
+        data:RefreshTokenRequest
+):
+    return user_service.refresh_user(db,data)
 
 
 @router_users.get(

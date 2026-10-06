@@ -5,6 +5,14 @@ from app.security.models.user_model import RoleType
 
 class Token(BaseModel):
     access_token: str
+    refresh_token:str
+    token_type: str = "bearer"
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+class AccessToken(BaseModel):
+    access_token: str
     token_type: str = "bearer"
 
 class UserLogin(BaseModel):

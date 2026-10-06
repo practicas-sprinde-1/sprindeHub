@@ -44,6 +44,9 @@ def get_current_user(
         # credentials.credentials porque es el JWT sin el encabezado
         token_data = decode_access_token(credentials.credentials)
 
+        if token_data.get("token_type") != "access":
+            raise credentials_exception()
+
         user_id = int(token_data["sub"])
 
     # Verifica que los datos estén correctamente.

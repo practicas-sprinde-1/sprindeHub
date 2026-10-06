@@ -1,11 +1,13 @@
+import jwt
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.security.models.user_model import User
 from app.security.repositories import user_repo
 from app.security.schemas.user_token_schemas import UserRegister, UserLogin, Token, UserSelfUpdate, PasswordChange, \
-    AdminUserCreate, AdminUserUpdate
-from app.security.utils import hash_password, verify_password, create_access_token
+    AdminUserCreate, AdminUserUpdate, RefreshTokenRequest, AccessToken
+from app.security.utils import hash_password, verify_password, create_access_token, create_refresh_token, \
+    decode_access_token
 from app.services import client_service
 
 
@@ -94,10 +96,55 @@ def login_user(
         )
 
     access_token = create_access_token(user.id)
+    refresh_token = create_refresh_token(user.id)
 
-    return Token(access_token=access_token)
+    return Token(
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
 
+def refresh_user(
+        db:Session,
+        data:RefreshTokenRequest
+)->AccessToken:
+    try:
+        token_data = decode_access_token(data.refresh_token)
 
+        if token_data["token_type"] != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Error al refrescar, inicie sesión de nuevo."
+            )
+        user_id = int(token_data["sub"])
+
+    #Captura errores que no son especificos de token
+    except HTTPException:
+        raise
+
+    except (
+        jwt.PyJWTError,
+        KeyError,
+        TypeError,
+        ValueError,
+        ):
+            raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido o expirado.",
+        )
+
+    user = get_user(db,user_id)
+
+    if user.is_active is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Este usuario está desactivado."
+        )
+
+    access_token = create_access_token(user_id)
+
+    return AccessToken(
+        access_token=access_token
+    )
 
 
 def restore_user(

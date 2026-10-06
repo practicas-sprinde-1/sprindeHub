@@ -26,9 +26,30 @@ def create_access_token(user_id: int) -> str:
         "sub": str(user_id),
         "iat": now,
         "exp": expires,
+        "iss": settings.jwt_issuer,
+        "aud": settings.jwt_audience,
+        "token_type": "access",
     }
 
     #Se fabrica el jwt firmándolo con la password de .env y usando tambien el algoritmo definido en .env
+    return jwt.encode(
+        token_data,
+        settings.jwt_secret_key,
+        algorithm=settings.jwt_algorithm,
+    )
+
+def create_refresh_token(user_id: int) -> str:
+    now = datetime.now(timezone.utc)
+    expires = now + timedelta(days=settings.refresh_token_days)
+
+    token_data = {
+        "sub": str(user_id),
+        "iat": now,
+        "exp": expires,
+        "iss": settings.jwt_issuer,
+        "aud": settings.jwt_audience,
+        "token_type": "refresh",
+    }
     return jwt.encode(
         token_data,
         settings.jwt_secret_key,
@@ -41,4 +62,6 @@ def decode_access_token(token: str) -> dict:
         token,
         settings.jwt_secret_key,
         algorithms=[settings.jwt_algorithm],
+        issuer=settings.jwt_issuer,
+        audience=settings.jwt_audience,
     )
