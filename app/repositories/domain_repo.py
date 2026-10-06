@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.domain import Domain
+from app.models.project import Project
 from app.security.models.user_client_model import UserClient
 
 
@@ -30,8 +31,9 @@ def find_all_by_users(
 ) -> list[Domain]:
     statement = (
         select(Domain)
-        .join(UserClient, UserClient.client_id == Domain.project.client_id)
-        .where(UserClient.user_id==user_id)
+        .join(Project, Project.id == Domain.project_id)
+        .join(UserClient, UserClient.client_id == Project.client_id)
+        .where(UserClient.user_id==user_id,Project.is_active.is_(True))
         .offset(offset)
         .limit(limit)
         .order_by(Domain.id)

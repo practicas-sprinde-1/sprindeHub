@@ -35,6 +35,14 @@ def get_notes(
 )->list[Note]:
     return note_repo.find_all(db,offset,limit)
 
+def get_notes_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Note]:
+    return note_repo.find_all_by_users(db,user_id,offset,limit)
+
 def create_note(
         db:Session,
         data:NoteCreate

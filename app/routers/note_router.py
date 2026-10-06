@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.project import Project
 from app.schemas.note_schema import NoteRead,NoteCreate,NoteUpdate
+from app.security.dependencies import get_active_current_user, require_modifier_role, require_project_access
+from app.security.models.user_model import User, RoleType
 from app.services import note_service
 
 router = APIRouter(
@@ -17,16 +20,31 @@ DbSession = Annotated[
     Depends(get_db)
 ]
 
+CurrentUser = Annotated[
+    User, Depends(get_active_current_user)
+]
+
+CurrentWriter = Annotated[
+    User,Depends(require_modifier_role)
+]
+
+CurrentProject = Annotated[
+    Project,Depends(require_project_access)
+]
+
 @router.get(
     "",
     response_model=list[NoteRead]
 )
 def find_all(
         db:DbSession,
+        current_user:CurrentUser,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return note_service.get_notes(db,offset,limit)
+    if current_user.role == RoleType.ADMIN:
+        return note_service.get_notes(db,offset,limit)
+    return note_service.get_notes_by_users(db,current_user.id,offset, limit)
 
 @router.get(
     "/{note_id}",
@@ -34,9 +52,12 @@ def find_all(
 )
 def find_by_id(
         db:DbSession,
-        note_id:int
+        note_id:int,
+        current_user:CurrentUser
 ):
-    return note_service.get_note(db,note_id)
+    note = note_service.get_note(db,note_id)
+    require_project_access(note.project_id,db,current_user)
+    return note
 
 @router.get(
     "/project/{project_id}",
@@ -44,11 +65,11 @@ def find_by_id(
 )
 def find_by_project_id(
         db:DbSession,
-        project_id:int,
+        current_project:CurrentProject,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return note_service.get_notes_by_id_project(db,project_id,offset,limit)
+    return note_service.get_notes_by_id_project(db,current_project.id,offset,limit)
 
 @router.post(
     "",
@@ -57,8 +78,10 @@ def find_by_project_id(
 )
 def create(
         db: DbSession,
-        data: NoteCreate
+        data: NoteCreate,
+        current_user:CurrentWriter
 ):
+    require_project_access(data.project_id,db,current_user)
     return note_service.create_note(db, data)
 
 
@@ -69,8 +92,14 @@ def create(
 def update(
         db: DbSession,
         note_id: int,
-        data: NoteUpdate
+        data: NoteUpdate,
+        current_user:CurrentWriter
 ):
+    note = note_service.get_note(db,note_id)
+    require_project_access(note.project_id,db,current_user)
+
+    if data.project_id is not None:
+        require_project_access(data.project_id,db,current_user)
     return note_service.update_note(db, note_id, data)
 
 
@@ -80,7 +109,10 @@ def update(
 )
 def delete(
         db: DbSession,
-        note_id: int
+        note_id: int,
+        current_user:CurrentWriter
 ) -> None:
+    note = note_service.get_note(db, note_id)
+    require_project_access(note.project_id, db, current_user)
     note_service.delete_note(db, note_id)
 

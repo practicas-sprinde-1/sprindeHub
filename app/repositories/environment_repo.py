@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.environment import Environment
+from app.models.project import Project
 from app.security.models.user_client_model import UserClient
 
 
@@ -29,8 +30,9 @@ def find_all_by_users(
 ) -> list[Environment]:
     statement = (
         select(Environment)
-        .join(UserClient,UserClient.client_id==Environment.project.client_id)
-        .where(UserClient.user_id==user_id)
+        .join(Project, Project.id == Environment.project_id)
+        .join(UserClient, UserClient.client_id == Project.client_id)
+        .where(UserClient.user_id==user_id,Project.is_active.is_(True))
         .offset(offset)
         .limit(limit)
         .order_by(Environment.id)
