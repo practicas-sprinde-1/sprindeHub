@@ -35,6 +35,14 @@ def get_repositories(
 )->list[Repository]:
     return repository_repo.find_all(db,offset,limit)
 
+def get_repositories_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Repository]:
+    return repository_repo.find_all_by_users(db,user_id,offset,limit)
+
 def create_repository(
         db:Session,
         data:RepositoryCreate
