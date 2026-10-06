@@ -85,7 +85,7 @@ def create(
         current_user:CurrentWriter
 ):
     require_project_access(data.project_id,db,current_user)
-    return command_service.create_command(db, data)
+    return command_service.create_command(db, data,current_user)
 
 
 @router.patch(
@@ -104,7 +104,7 @@ def update(
     if data.project_id is not None:
         require_project_access(data.project_id, db, current_user)
 
-    return command_service.update_command(db, command_id, data)
+    return command_service.update_command(db, command_id, data,current_user)
 
 
 @router.delete(
@@ -118,5 +118,5 @@ def delete(
 ) -> None:
     command = command_service.get_command(db,command_id)
     require_project_access(command.project_id, db, current_user)
-    command_service.delete_command(db, command_id)
+    command_service.delete_command(db, command_id,current_user)
 
