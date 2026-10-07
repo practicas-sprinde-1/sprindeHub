@@ -74,7 +74,7 @@ def login(
 @router_auth.post(
     "/refresh",
     response_model=AccessToken,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_201_CREATED
 )
 def refresh(
         db:DbSession,

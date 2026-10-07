@@ -252,6 +252,28 @@ def created_user_type_user() :
     finally:
         db.close()
 
+@pytest.fixture
+def created_inactive_user() :
+    db = sessionLocal()
+
+    user = User(
+        email="user@test.com",
+        username="user",
+        password_hash=hash_password("passwordde+10"),
+        role=RoleType.USER,
+        is_active=False,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    try:
+        yield user
+    finally:
+        db.close()
+
+
 
 
 @pytest.fixture
