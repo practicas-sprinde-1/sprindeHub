@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
-from app.schemas.project_schema import ProjectCreate,ProjectUpdate,ProjectRead
+from app.models.client import Client
+from app.models.project import Project
+from app.schemas.project_schema import ProjectCreate, ProjectUpdate, ProjectRead
+from app.security.dependencies import require_project_access, require_client_access, get_active_current_user, \
+    require_modifier_role, check_client_access
+from app.security.models.user_model import RoleType, User
 from app.services import project_service
 
 router = APIRouter(
@@ -12,43 +17,67 @@ router = APIRouter(
     tags=["projects"]
 )
 
-DbSession= Annotated[
+DbSession = Annotated[
     Session,
     Depends(get_db)
 ]
+
+CurrentProject = Annotated[
+    Project, Depends(require_project_access)
+]
+
+CurrentClient = Annotated[
+    Client, Depends(require_client_access)
+]
+
+CurrentUser = Annotated[
+    User,
+    Depends(get_active_current_user),
+]
+
+CurrentWriter = Annotated[
+    User, Depends(require_modifier_role)
+]
+
 
 @router.get(
     "",
     response_model=list[ProjectRead]
 )
 def find_all(
-        db:DbSession,
-        offset:int = Query(default=0,ge=0),
-        limit:int=Query(default=20,ge=1,le=100)
+        db: DbSession,
+        current_user: CurrentUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100)
 ):
-    return project_service.get_projects(db,offset,limit)
+    if current_user.role == RoleType.ADMIN:
+        return project_service.get_projects(db, offset, limit)
+
+    return project_service.get_projects_by_users(db, current_user.id, offset, limit)
+
 
 @router.get(
     "/{project_id}",
     response_model=ProjectRead
 )
 def find_by_id(
-        db:DbSession,
-        project_id:int
+        project: CurrentProject
 ):
-    return project_service.get_project(db,project_id)
+    return project
+
 
 @router.get(
     "/client/{client_id}",
     response_model=list[ProjectRead]
 )
 def find_by_client_id(
-        db:DbSession,
-        client_id:int,
-        offset:int = Query(default=0,ge=0),
-        limit:int=Query(default=20,ge=1,le=100)
+        db: DbSession,
+        client: CurrentClient,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100)
 ):
-    return project_service.get_projects_by_id_client(db,client_id,offset,limit)
+    return project_service.get_projects_by_id_client(db, client.id, offset, limit)
+
 
 @router.post(
     "",
@@ -57,9 +86,13 @@ def find_by_client_id(
 )
 def create(
         db: DbSession,
-        data: ProjectCreate
+        data: ProjectCreate,
+        current_user: CurrentWriter,
+
 ):
-    return project_service.create_project(db, data)
+    check_client_access(db, current_user, data.client_id)
+
+    return project_service.create_project(db, data,current_user)
 
 
 @router.patch(
@@ -68,10 +101,14 @@ def create(
 )
 def update(
         db: DbSession,
-        project_id: int,
-        data: ProjectUpdate
+        data: ProjectUpdate,
+        current_user: CurrentWriter,
+        current_project: CurrentProject,
 ):
-    return project_service.update_project(db, project_id, data)
+    if data.client_id is not None:
+        check_client_access(db, current_user, data.client_id)
+
+    return project_service.update_project(db, current_project.id, data,current_user)
 
 
 @router.delete(
@@ -80,9 +117,10 @@ def update(
 )
 def delete(
         db: DbSession,
-        project_id: int
+        current_user: CurrentWriter,
+        current_project: CurrentProject
 ) -> None:
-    project_service.delete_project(db, project_id)
+    project_service.delete_project(db, current_project.id,current_user)
 
 
 @router.patch(
@@ -90,10 +128,11 @@ def delete(
     response_model=ProjectRead
 )
 def archive(
-        db:DbSession,
-        project_id:int
+        db: DbSession,
+        current_user: CurrentWriter,
+        current_project: CurrentProject
 ):
-    return project_service.archive_project(db,project_id)
+    return project_service.archive_project(db, current_project.id,current_user)
 
 
 @router.patch(
@@ -101,10 +140,8 @@ def archive(
     response_model=ProjectRead
 )
 def restore(
-        db:DbSession,
-        project_id:int
+        db: DbSession,
+        current_user: CurrentWriter,
+        current_project: CurrentProject
 ):
-    return project_service.restore_project(db,project_id)
-
-
-
+    return project_service.restore_project(db, current_project.id,current_user)

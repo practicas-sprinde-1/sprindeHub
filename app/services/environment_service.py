@@ -4,6 +4,9 @@ from sqlalchemy.orm import Session
 from app.models.environment import Environment
 from app.repositories import environment_repo
 from app.schemas.environment_schema import EnvironmentCreate,EnvironmentUpdate
+from app.security.models.log_model import ActionType, EntityType
+from app.security.models.user_model import User
+from app.security.services import log_service
 from app.services import project_service
 
 def get_environment(
@@ -35,9 +38,19 @@ def get_environments(
 )->list[Environment]:
     return environment_repo.find_all(db,offset,limit)
 
+def get_environments_by_users(
+        db:Session,
+        user_id:int,
+        offset:int,
+        limit:int
+)->list[Environment]:
+    return environment_repo.find_all_by_users(db,user_id,offset,limit)
+
+
 def create_environment(
         db:Session,
-        data:EnvironmentCreate
+        data:EnvironmentCreate,
+        current_user:User
 )->Environment:
 
 
@@ -48,12 +61,34 @@ def create_environment(
         url=data.url,
         project_id=project.id
     )
-    return environment_repo.save(db,environment)
+
+    try:
+        environment_repo.save(db, environment)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.CREATE,
+            affected_entity=EntityType.ENVIRONMENT,
+            affected_entity_id=environment.id
+        )
+        db.commit()
+        db.refresh(environment)
+        return environment
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+
+
 
 def update_environment(
         db:Session,
         environment_id:int,
-        data:EnvironmentUpdate
+        data:EnvironmentUpdate,
+        current_user:User
 )->Environment:
     environment = get_environment(db,environment_id)
 
@@ -66,16 +101,51 @@ def update_environment(
     for field,value in updates.items():
         setattr(environment,field,value)
 
-    return environment_repo.save(db,environment)
+    try:
+        environment_repo.save(db, environment)
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.UPDATE,
+            affected_entity=EntityType.ENVIRONMENT,
+            affected_entity_id=environment.id
+        )
+        db.commit()
+        db.refresh(environment)
+        return environment
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+
+
 
 def delete_environment(
         db:Session,
-        environment_id:int
+        environment_id:int,
+        current_user:User
 )->str:
     environment = get_environment(db,environment_id)
     name_project = environment.project.name
 
-    environment_repo.delete(db,environment)
-    return f"El entorno del proyecto {name_project} ha sido borrado correctamente"
+    try:
+        environment_repo.delete(db, environment)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.DELETE,
+            affected_entity=EntityType.ENVIRONMENT,
+            affected_entity_id=environment.id
+        )
+        db.commit()
+        return f"El entorno del proyecto {name_project} ha sido borrado correctamente"
+
+    except Exception:
+        db.rollback()
+        raise
+
 
 

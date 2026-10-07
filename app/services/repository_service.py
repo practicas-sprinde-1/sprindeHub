@@ -3,79 +3,145 @@ from sqlalchemy.orm import Session
 
 from app.models.repository import Repository
 from app.repositories import repository_repo
-from app.schemas.repository_schema import RepositoryCreate,RepositoryUpdate
+from app.schemas.repository_schema import RepositoryCreate, RepositoryUpdate
+from app.security.models.log_model import ActionType, EntityType
+from app.security.models.user_model import User
+from app.security.services import log_service
 from app.services import project_service
 
+
 def get_repository(
-        db:Session,
-        repository_id:int
-)-> Repository:
-    repository = repository_repo.find_by_id(db,repository_id)
+        db: Session,
+        repository_id: int
+) -> Repository:
+    repository = repository_repo.find_by_id(db, repository_id)
     if repository is None:
         raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND,
-            detail= "Repositorio no encontrado"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Repositorio no encontrado"
         )
     return repository
 
-def get_repository_by_id_project(
-        db:Session,
-        project_id:int,
-        offset:int,
-        limit:int
 
-)-> list[Repository]:
-    repositories = repository_repo.find_by_project_id(db,project_id,offset,limit)
+def get_repository_by_id_project(
+        db: Session,
+        project_id: int,
+        offset: int,
+        limit: int
+
+) -> list[Repository]:
+    repositories = repository_repo.find_by_project_id(db, project_id, offset, limit)
     return repositories
 
+
 def get_repositories(
-        db:Session,
-        offset:int,
-        limit:int
-)->list[Repository]:
-    return repository_repo.find_all(db,offset,limit)
+        db: Session,
+        offset: int,
+        limit: int
+) -> list[Repository]:
+    return repository_repo.find_all(db, offset, limit)
+
+
+def get_repositories_by_users(
+        db: Session,
+        user_id: int,
+        offset: int,
+        limit: int
+) -> list[Repository]:
+    return repository_repo.find_all_by_users(db, user_id, offset, limit)
+
 
 def create_repository(
-        db:Session,
-        data:RepositoryCreate
-)->Repository:
-
-
-    project = project_service.get_active_project(db,data.project_id)
+        db: Session,
+        data: RepositoryCreate,
+        current_user: User
+) -> Repository:
+    project = project_service.get_active_project(db, data.project_id)
 
     repository = Repository(
         type=data.type,
         url=data.url,
         project_id=project.id
     )
-    return repository_repo.save(db,repository)
+
+    try:
+        repository_repo.save(db, repository)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.CREATE,
+            affected_entity=EntityType.REPOSITORY,
+            affected_entity_id=repository.id
+        )
+        db.commit()
+        db.refresh(repository)
+        return repository
+    except Exception:
+        db.rollback()
+        raise
+
 
 def update_repository(
-        db:Session,
-        repository_id:int,
-        data:RepositoryUpdate
-)->Repository:
-    repository = get_repository(db,repository_id)
+        db: Session,
+        repository_id: int,
+        data: RepositoryUpdate,
+        current_user:User
+) -> Repository:
+    repository = get_repository(db, repository_id)
 
     updates = data.model_dump(
         exclude_unset=True
     )
     if "project_id" in updates:
-        project_service.get_active_project(db,updates["project_id"])
+        project_service.get_active_project(db, updates["project_id"])
 
-    for field,value in updates.items():
-        setattr(repository,field,value)
+    for field, value in updates.items():
+        setattr(repository, field, value)
 
-    return repository_repo.save(db,repository)
+    try:
+        repository_repo.save(db, repository)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.UPDATE,
+            affected_entity=EntityType.REPOSITORY,
+            affected_entity_id=repository.id
+        )
+        db.commit()
+        db.refresh(repository)
+        return repository
+    except Exception:
+        db.rollback()
+        raise
+
 
 def delete_repository(
-        db:Session,
-        repository_id:int
-)->str:
-    repository = get_repository(db,repository_id)
+        db: Session,
+        repository_id: int,
+        current_user:User
+) -> str:
+    repository = get_repository(db, repository_id)
     name_project = repository.project.name
 
-    repository_repo.delete(db,repository)
-    return f"El repositorio del proyecto {name_project} ha sido borrado correctamente"
+    try:
+        repository_repo.delete(db, repository)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.DELETE,
+            affected_entity=EntityType.REPOSITORY,
+            affected_entity_id=repository.id
+        )
+        db.commit()
+        return f"El repositorio del proyecto {name_project} ha sido borrado correctamente"
+
+    except Exception:
+        db.rollback()
+        raise
+
+
 
 

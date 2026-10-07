@@ -7,15 +7,7 @@ from sqlalchemy import pool
 from app.core.config import settings
 from app.database.base_class import Base
 
-from app.models.client import Client
-from app.models.project import Project
-from app.models.environment import Environment
-from app.models.repository import Repository
-from app.models.domain import Domain
-from app.models.link import Link
-from app.models.service import Service
-from app.models.command import Command
-from app.models.note import Note
+import app.database.base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

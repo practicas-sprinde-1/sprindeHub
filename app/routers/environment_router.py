@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.project import Project
 from app.schemas.environment_schema import EnvironmentUpdate,EnvironmentCreate,EnvironmentRead
+from app.security.dependencies import get_active_current_user, require_project_access, require_modifier_role
+from app.security.models.user_model import User, RoleType
 from app.services import environment_service
 
 router = APIRouter(
@@ -17,16 +20,31 @@ DbSession = Annotated[
     Depends(get_db)
 ]
 
+CurrentUser = Annotated[
+    User, Depends(get_active_current_user)
+]
+
+CurrentWriter = Annotated[
+    User,Depends(require_modifier_role)
+]
+
+CurrentProject = Annotated[
+    Project,Depends(require_project_access)
+]
 @router.get(
     "",
     response_model=list[EnvironmentRead]
 )
 def find_all(
         db:DbSession,
+        current_user:CurrentUser,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return environment_service.get_environments(db,offset,limit)
+    if current_user.role == RoleType.ADMIN:
+        return environment_service.get_environments(db,offset,limit)
+
+    return environment_service.get_environments_by_users(db,current_user.id,offset, limit)
 
 @router.get(
     "/{environment_id}",
@@ -34,9 +52,12 @@ def find_all(
 )
 def find_by_id(
         db:DbSession,
-        environment_id:int
+        environment_id:int,
+        current_user:CurrentUser
 ):
-    return environment_service.get_environment(db,environment_id)
+    environment = environment_service.get_environment(db, environment_id)
+    require_project_access(environment.project_id,db, current_user)
+    return environment
 
 @router.get(
     "/project/{project_id}",
@@ -44,11 +65,11 @@ def find_by_id(
 )
 def find_by_project_id(
         db:DbSession,
-        project_id:int,
+        current_project:CurrentProject,
         offset:int = Query(default=0,ge=0),
         limit:int=Query(default=20,ge=1,le=100)
 ):
-    return environment_service.get_environment_by_id_project(db,project_id,offset,limit)
+    return environment_service.get_environment_by_id_project(db,current_project.id,offset,limit)
 
 @router.post(
     "",
@@ -57,9 +78,11 @@ def find_by_project_id(
 )
 def create(
         db: DbSession,
-        data: EnvironmentCreate
+        data: EnvironmentCreate,
+        current_user:CurrentWriter
 ):
-    return environment_service.create_environment(db, data)
+    require_project_access(data.project_id,db,current_user)
+    return environment_service.create_environment(db, data,current_user)
 
 
 @router.patch(
@@ -69,9 +92,16 @@ def create(
 def update(
         db: DbSession,
         environment_id: int,
-        data: EnvironmentUpdate
+        data: EnvironmentUpdate,
+        current_user:CurrentWriter
 ):
-    return environment_service.update_environment(db, environment_id, data)
+    environment = environment_service.get_environment(db,environment_id)
+    require_project_access(environment.project_id,db,current_user)
+
+    if data.project_id is not None:
+        require_project_access(data.project_id, db, current_user)
+
+    return environment_service.update_environment(db, environment_id, data,current_user)
 
 
 @router.delete(
@@ -80,7 +110,10 @@ def update(
 )
 def delete(
         db: DbSession,
-        environment_id: int
+        environment_id: int,
+        current_user:CurrentWriter
 ) -> None:
-    environment_service.delete_environment(db, environment_id)
+    environment = environment_service.get_environment(db,environment_id)
+    require_project_access(environment.project_id,db,current_user)
+    environment_service.delete_environment(db, environment_id,current_user)
 
