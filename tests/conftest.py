@@ -232,7 +232,7 @@ def admin_headers(login_admin_token) -> dict:
     }
 
 @pytest.fixture
-def user_type_user() :
+def created_user_type_user() :
     db = sessionLocal()
 
     user = User(
@@ -255,11 +255,11 @@ def user_type_user() :
 
 
 @pytest.fixture
-def login_user_token(api_client, user_type_user) -> Token:
+def login_user_token(api_client, created_user_type_user) -> Token:
     response = api_client.post(
         "/api/v1/auth/login",
         json={
-            "email": user_type_user.email,
+            "email": created_user_type_user.email,
             "password": "passwordde+10"
         }
     )
@@ -277,9 +277,9 @@ def user_headers(login_user_token) -> dict:
 
 
 @pytest.fixture
-def user_with_client(api_client, created_client, admin_headers, user_type_user):
+def user_with_client(api_client, created_client, admin_headers, created_user_type_user):
     response = api_client.post(
-        f"/api/v1/admin/user-clients/users/{user_type_user.id}/clients",
+        f"/api/v1/admin/user-clients/users/{created_user_type_user.id}/clients",
         json={
         "client_id": created_client["id"]
         },
