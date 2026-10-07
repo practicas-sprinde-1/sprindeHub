@@ -171,7 +171,7 @@ def restored_project(
     )
 
     assert restored_response.status_code == status.HTTP_200_OK
-    assert restored_response["is_active"] is True
+    assert restored_response.json()["is_active"] is True
     return restored_response.json()
 
 @pytest.fixture
