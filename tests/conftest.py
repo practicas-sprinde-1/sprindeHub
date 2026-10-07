@@ -1,5 +1,9 @@
 import os
-os.environ["ENV_FILE"] = ".env.test"
+from pathlib import Path
+
+#Desde contest.py busca la ruta raíz del proyecto y utiliza .env.test en vez de .env
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+os.environ["ENV_FILE"] = str(PROJECT_ROOT / ".env.test")
 
 from app.security.models.user_model import User, RoleType
 from app.security.schemas.user_token_schemas import AccessToken, Token
