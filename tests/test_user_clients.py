@@ -171,3 +171,4 @@ def test_user_denied_access_after_revocation(
         headers=user_headers,
     )
     assert denied_response.status_code == status.HTTP_403_FORBIDDEN
+

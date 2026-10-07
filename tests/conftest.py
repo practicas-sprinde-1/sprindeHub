@@ -310,3 +310,39 @@ def user_with_client(api_client, created_client, admin_headers, created_user_typ
     assert response.status_code == status.HTTP_201_CREATED
     return response.json()
 
+@pytest.fixture
+def guest_headers(api_client, created_guest):
+    response = api_client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "test@test.com",
+            "password": "1234567890",
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    token = response.json()
+
+    return {
+        "Authorization": f"Bearer {token['access_token']}",
+    }
+
+
+@pytest.fixture
+def guest_with_client(
+    api_client,
+    admin_headers,
+    created_guest,
+    created_client,
+):
+    response = api_client.post(
+        f"/api/v1/admin/user-clients/users/{created_guest['id']}/clients",
+        json={
+            "client_id": created_client["id"],
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    return response.json()

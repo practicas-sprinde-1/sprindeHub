@@ -214,7 +214,7 @@ def test_any_endpoint_without_login(
 
     assert  response.status_code == status.HTTP_401_UNAUTHORIZED
 
-def test_token_invalido_devuelve_401(api_client):
+def test_token_invalid(api_client):
     response = api_client.get(
         "/api/v1/clients",
         headers={
