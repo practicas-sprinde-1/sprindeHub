@@ -172,3 +172,19 @@ def test_user_denied_access_after_revocation(
     )
     assert denied_response.status_code == status.HTTP_403_FORBIDDEN
 
+
+def test_get_user_clients(
+        api_client,
+        admin_headers,
+        created_client,
+        created_user_type_user,
+        user_with_client
+):
+    response = api_client.get(
+        f"api/v1/admin/user-clients/users/{created_user_type_user.id}/clients/{created_client["id"]}",
+        headers=admin_headers
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["user_id"]==created_user_type_user.id
+    assert response.json()["client_id"]==created_client["id"]

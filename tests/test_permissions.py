@@ -217,15 +217,15 @@ def test_project_access_by_unauthorized_logged_user(
         headers=user_headers
     )
 
-    assert response.status_code==status.HTTP_403_FORBIDDEN
+    assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
 def test_guest_read_clients_and_projects(
-    api_client,
-    guest_headers,
-    guest_with_client,
-    created_client,
-    created_project,
+        api_client,
+        guest_headers,
+        guest_with_client,
+        created_client,
+        created_project,
 ):
     clients_response = api_client.get(
         "/api/v1/clients",
@@ -251,11 +251,12 @@ def test_guest_read_clients_and_projects(
     assert projects_response.status_code == status.HTTP_200_OK
     assert projects_response.json()[0]["id"] == created_project["id"]
 
+
 def test_guest_unauthorized_writer_on_assigned_client(
-    api_client,
-    guest_headers,
-    guest_with_client,
-    created_client,
+        api_client,
+        guest_headers,
+        guest_with_client,
+        created_client,
 ):
     create_response = api_client.post(
         "/api/v1/clients",
@@ -293,11 +294,12 @@ def test_guest_unauthorized_writer_on_assigned_client(
 
     assert delete_response.status_code == status.HTTP_403_FORBIDDEN
 
+
 def test_guest_cannot_read_unassigned_client(
-    api_client,
-    admin_headers,
-    guest_headers,
-    guest_with_client,
+        api_client,
+        admin_headers,
+        guest_headers,
+        guest_with_client,
 ):
     other_client_response = api_client.post(
         "/api/v1/clients",
@@ -319,3 +321,60 @@ def test_guest_cannot_read_unassigned_client(
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_create_project_with_assigned_client(
+        api_client,
+        user_with_client,
+        user_headers,
+        created_client
+):
+    response = api_client.post(
+        "/api/v1/projects",
+        json={
+            "name": "string",
+            "description": "string",
+            "client_id": created_client["id"]
+        },
+        headers=user_headers
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+
+
+def test_update_unauthorized_client(
+        api_client,
+        user_headers,
+        created_client
+):
+    response = api_client.patch(
+        f"/api/v1/clients/{created_client["id"]}",
+        json={
+            "name": "string",
+            "cif": "string",
+            "phone": "string"
+        },
+        headers=user_headers
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_update_unauthorized_project(
+        api_client,
+        user_headers,
+        created_client,
+        created_project
+):
+    response = api_client.patch(
+        f"/api/v1/projects/{created_project["id"]}",
+        json={
+            "name": "string",
+            "description": "string",
+            "client_id": 1
+        },
+    headers = user_headers
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+
