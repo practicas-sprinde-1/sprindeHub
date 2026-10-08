@@ -1,9 +1,18 @@
 import os
+from pathlib import Path
+
+#Desde contest.py busca la ruta raíz del proyecto y utiliza .env.test en vez de .env
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+os.environ["ENV_FILE"] = str(PROJECT_ROOT / ".env.test")
+
+from app.security.models.user_model import User, RoleType
+from app.security.schemas.user_token_schemas import AccessToken, Token
+from app.security.utils import hash_password
+
+
 
 from app.models.client import Client
 from app.models.project import Project
-
-os.environ["ENV_FILE"] = ".env.test"
 
 import pytest
 from fastapi.testclient import TestClient
@@ -16,8 +25,10 @@ from main import app
 
 
 @pytest.fixture(autouse=True)
-def clean_clients_table():
+def clean_tables():
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM logs"))
+        connection.execute(text("DELETE FROM user_clients"))
         connection.execute(text("DELETE FROM notes"))
         connection.execute(text("DELETE FROM commands"))
         connection.execute(text("DELETE FROM services"))
@@ -27,10 +38,13 @@ def clean_clients_table():
         connection.execute(text("DELETE FROM environments"))
         connection.execute(text("DELETE FROM projects"))
         connection.execute(text("DELETE FROM clients"))
+        connection.execute(text("DELETE FROM users"))
 
     yield
 
     with engine.begin() as connection:
+        connection.execute(text("DELETE FROM logs"))
+        connection.execute(text("DELETE FROM user_clients"))
         connection.execute(text("DELETE FROM notes"))
         connection.execute(text("DELETE FROM commands"))
         connection.execute(text("DELETE FROM services"))
@@ -40,6 +54,7 @@ def clean_clients_table():
         connection.execute(text("DELETE FROM environments"))
         connection.execute(text("DELETE FROM projects"))
         connection.execute(text("DELETE FROM clients"))
+        connection.execute(text("DELETE FROM users"))
 
 
 @pytest.fixture
@@ -58,9 +73,8 @@ def api_client():
 
     app.dependency_overrides.clear()
 
-
 @pytest.fixture
-def created_client(api_client) -> Client:
+def created_client(api_client, admin_headers) -> Client:
     response = api_client.post(
         "/api/v1/clients",
         json={
@@ -68,6 +82,7 @@ def created_client(api_client) -> Client:
             "cif": "B12345678",
             "phone": "600123123",
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == status.HTTP_201_CREATED
@@ -75,7 +90,7 @@ def created_client(api_client) -> Client:
 
 
 @pytest.fixture
-def archived_client(api_client) -> Client:
+def archived_client(api_client, admin_headers) -> Client:
     create_response = api_client.post(
         "/api/v1/clients",
         json={
@@ -83,13 +98,15 @@ def archived_client(api_client) -> Client:
             "cif": "B87654321",
             "phone": "600987987",
         },
+        headers=admin_headers,
     )
 
     assert create_response.status_code == status.HTTP_201_CREATED
     client = create_response.json()
 
     archive_response = api_client.patch(
-        f"/api/v1/clients/{client['id']}/archive"
+        f"/api/v1/clients/{client['id']}/archive",
+        headers=admin_headers
     )
 
     assert archive_response.status_code == status.HTTP_200_OK
@@ -100,7 +117,7 @@ def archived_client(api_client) -> Client:
 def created_project(
         api_client,
         created_client
-) -> Project:
+, admin_headers) -> Project:
     response = api_client.post(
         "/api/v1/projects",
         json={
@@ -108,6 +125,7 @@ def created_project(
             "description": "Descripción proyecto conftest",
             "client_id": created_client["id"],
         },
+        headers=admin_headers,
     )
     return response.json()
 
@@ -116,7 +134,7 @@ def created_project(
 def archived_project(
         api_client,
         created_client
-) -> Project:
+, admin_headers) -> Project:
     response = api_client.post(
         "/api/v1/projects",
         json={
@@ -124,13 +142,15 @@ def archived_project(
             "description": "Descripción proyecto archivado",
             "client_id": created_client["id"],
         },
+        headers=admin_headers,
     )
 
     assert response.status_code == status.HTTP_201_CREATED
     project = response.json()
 
     archive_response = api_client.patch(
-        f"/api/v1/projects/{project['id']}/archive"
+        f"/api/v1/projects/{project['id']}/archive",
+        headers=admin_headers
     )
 
     assert archive_response.status_code == status.HTTP_200_OK
@@ -141,22 +161,188 @@ def archived_project(
 def restored_project(
         api_client,
         created_client
-) -> Project:
+, admin_headers,archived_project) -> Project:
+
+    project = archived_project
+
+    restored_response = api_client.patch(
+        f"/api/v1/projects/{project['id']}/restore",
+        headers=admin_headers
+    )
+
+    assert restored_response.status_code == status.HTTP_200_OK
+    assert restored_response.json()["is_active"] is True
+    return restored_response.json()
+
+@pytest.fixture
+def admin_user():
+    db = sessionLocal()
+
+    admin = User(
+        email="admin@test.com",
+        username="admin",
+        password_hash=hash_password("passwordde+10"),
+        role=RoleType.ADMIN,
+        is_active=True,
+    )
+
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+
+    try:
+        yield admin
+    finally:
+        db.close()
+
+@pytest.fixture
+def created_guest(api_client) -> User:
     response = api_client.post(
-        "/api/v1/projects",
+        "/api/v1/auth/register",
         json={
-            "name": "Proyecto restaurado",
-            "description": "Descripción proyecto restaurado",
-            "client_id": created_client["id"],
+            "email": "test@test.com",
+            "username": "test",
+            "password": "1234567890",
         },
     )
 
     assert response.status_code == status.HTTP_201_CREATED
-    project = response.json()
+    return response.json()
 
-    restored_response = api_client.patch(
-        f"/api/v1/projects/{project['id']}/restored"
+
+@pytest.fixture
+def login_admin_token(api_client,admin_user) -> Token:
+    response = api_client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": admin_user.email,
+            "password": "passwordde+10"
+        }
     )
 
-    assert restored_response.status_code == status.HTTP_200_OK
-    return restored_response.json()
+    assert response.status_code == status.HTTP_200_OK
+    return response.json()
+
+@pytest.fixture
+def admin_headers(login_admin_token) -> dict:
+    return {
+        "Authorization": (
+            f"Bearer {login_admin_token['access_token']}"
+        )
+    }
+
+@pytest.fixture
+def created_user_type_user() :
+    db = sessionLocal()
+
+    user = User(
+        email="user@test.com",
+        username="user",
+        password_hash=hash_password("passwordde+10"),
+        role=RoleType.USER,
+        is_active=True,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    try:
+        yield user
+    finally:
+        db.close()
+
+@pytest.fixture
+def created_inactive_user() :
+    db = sessionLocal()
+
+    user = User(
+        email="user@test.com",
+        username="user",
+        password_hash=hash_password("passwordde+10"),
+        role=RoleType.USER,
+        is_active=False,
+    )
+
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    try:
+        yield user
+    finally:
+        db.close()
+
+
+
+
+@pytest.fixture
+def login_user_token(api_client, created_user_type_user) -> Token:
+    response = api_client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": created_user_type_user.email,
+            "password": "passwordde+10"
+        }
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    return response.json()
+
+@pytest.fixture
+def user_headers(login_user_token) -> dict:
+    return {
+        "Authorization": (
+            f"Bearer {login_user_token['access_token']}"
+        )
+    }
+
+
+@pytest.fixture
+def user_with_client(api_client, created_client, admin_headers, created_user_type_user):
+    response = api_client.post(
+        f"/api/v1/admin/user-clients/users/{created_user_type_user.id}/clients",
+        json={
+        "client_id": created_client["id"]
+        },
+        headers=admin_headers
+    )
+    assert response.status_code == status.HTTP_201_CREATED
+    return response.json()
+
+@pytest.fixture
+def guest_headers(api_client, created_guest):
+    response = api_client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "test@test.com",
+            "password": "1234567890",
+        },
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+
+    token = response.json()
+
+    return {
+        "Authorization": f"Bearer {token['access_token']}",
+    }
+
+
+@pytest.fixture
+def guest_with_client(
+    api_client,
+    admin_headers,
+    created_guest,
+    created_client,
+):
+    response = api_client.post(
+        f"/api/v1/admin/user-clients/users/{created_guest['id']}/clients",
+        json={
+            "client_id": created_client["id"],
+        },
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    return response.json()

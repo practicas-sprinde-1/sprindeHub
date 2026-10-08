@@ -29,7 +29,7 @@ class User(Base):
         autoincrement=True,
     )
 
-    email: Mapped[EmailStr] = mapped_column(
+    email: Mapped[str] = mapped_column(
         String(254),
         unique=True,
         nullable=False

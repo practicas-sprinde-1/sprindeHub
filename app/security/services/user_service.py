@@ -68,7 +68,7 @@ def create_user(
         )
     crypted_password = hash_password(data.password)
     user = User(
-        email=data.email,
+        email=str(data.email),
         username=data.username,
         password_hash=crypted_password
     )
@@ -275,7 +275,7 @@ def admin_create_user(
         )
     crypted_password = hash_password(data.password)
     user = User(
-        email=data.email,
+        email=str(data.email),
         username=data.username,
         password_hash=crypted_password,
         role=data.role,

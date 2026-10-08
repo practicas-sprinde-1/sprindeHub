@@ -2,18 +2,19 @@ from app.models.environment import Environment
 from fastapi import status
 
 
-
 def aux_create_environment(
+        admin_headers,
         api_client,
-        client_id:int
-        ) -> Environment:
+        client_id: int
+) -> Environment:
     response = api_client.post(
         "/api/v1/environments",
         json={
             "type": "development",
-            "project_id":client_id,
+            "project_id": client_id,
             "url": "http://test.test",
-        }
+        },
+        headers=admin_headers
     )
     return response.json()
 
@@ -21,14 +22,15 @@ def aux_create_environment(
 def test_create_environment(
         api_client,
         created_project
-):
+        , admin_headers):
     response = api_client.post(
         "/api/v1/environments",
         json={
             "type": "development",
             "project_id": created_project["id"],
             "url": "http://test.test",
-        }
+        },
+        headers=admin_headers
     )
     assert response.status_code == status.HTTP_201_CREATED
     body = response.json()
@@ -41,7 +43,7 @@ def test_create_environment(
 def test_create_environment_fail_id_project(
         api_client,
         created_project
-):
+        , admin_headers):
     false_project_id = 9999
     response = api_client.post(
         "/api/v1/environments",
@@ -49,14 +51,16 @@ def test_create_environment_fail_id_project(
             "type": "development",
             "project_id": 9999,
             "url": "http://test.test",
-        }
+        },
+        headers=admin_headers
     )
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
 
 def test_create_environment_fail_type(
         api_client,
         created_project
-):
+        , admin_headers):
     false_project_id = 9999
     response = api_client.post(
         "/api/v1/environments",
@@ -64,7 +68,8 @@ def test_create_environment_fail_type(
             "type": "fail",
             "project_id": created_project["id"],
             "url": "http://test.test",
-        }
+        },
+        headers=admin_headers
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
@@ -72,14 +77,15 @@ def test_create_environment_fail_type(
 def test_create_environment_archived_project(
         api_client,
         archived_project,
-):
+        admin_headers):
     response = api_client.post(
         "/api/v1/environments",
         json={
             "type": "development",
             "project_id": archived_project["id"],
             "url": "http://test.test",
-        }
+        },
+        headers=admin_headers
     )
     assert response.status_code == status.HTTP_409_CONFLICT
 
@@ -87,7 +93,7 @@ def test_create_environment_archived_project(
 def test_create_environment_fail_url(
         api_client,
         created_project
-):
+        , admin_headers):
     false_project_id = 9999
     response = api_client.post(
         "/api/v1/environments",
@@ -95,67 +101,73 @@ def test_create_environment_fail_url(
             "type": "development",
             "project_id": 9999,
             "url": "test.test",
-        }
+        },
+        headers=admin_headers
     )
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
-def test_list_environments(api_client, created_project):
-    environment = aux_create_environment(api_client,created_project["id"])
+def test_list_environments(api_client, created_project, admin_headers):
+    environment = aux_create_environment(admin_headers, api_client, created_project["id"])
 
-    response = api_client.get("/api/v1/environments")
+    response = api_client.get("/api/v1/environments", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
 
     body = response.json()
-    assert len(body)==1
-    assert body[0]["id"]==environment["id"]
+    assert len(body) == 1
+    assert body[0]["id"] == environment["id"]
 
-def test_get_environment_by_id(api_client,created_project):
-    environment = aux_create_environment(api_client, created_project["id"])
-    response = api_client.get("/api/v1/environments")
+
+def test_get_environment_by_id(api_client, created_project, admin_headers):
+    environment = aux_create_environment(admin_headers, api_client, created_project["id"])
+    response = api_client.get("/api/v1/environments", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
     body = response.json()
     assert body[0]["id"] == environment["id"]
 
-def test_get_environments_by_projects(api_client,created_project):
-    first_environment = aux_create_environment(api_client, created_project["id"])
-    second_environment = aux_create_environment(api_client, created_project["id"])
 
-    id_project:int = created_project["id"]
+def test_get_environments_by_projects(api_client, created_project, admin_headers):
+    first_environment = aux_create_environment(admin_headers, api_client, created_project["id"])
+    second_environment = aux_create_environment(admin_headers, api_client, created_project["id"])
 
-    response = api_client.get(f"/api/v1/environments/project/{id_project}")
+    id_project: int = created_project["id"]
+
+    response = api_client.get(f"/api/v1/environments/project/{id_project}", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
     body = response.json()
-    assert len(body)==2
+    assert len(body) == 2
     assert body[0]["id"] == first_environment["id"]
     assert body[1]["id"] == second_environment["id"]
 
-def test_update_environment(api_client,created_project):
-    environment = aux_create_environment(api_client,created_project["id"])
+
+def test_update_environment(api_client, created_project, admin_headers):
+    environment = aux_create_environment(admin_headers, api_client, created_project["id"])
 
     response = api_client.patch(
         f"/api/v1/environments/{environment["id"]}",
         json={
-            "type":"staging",
-            "url":"http://update",
-            "id_project":created_project["id"]
-        }
+            "type": "staging",
+            "url": "http://update",
+            "id_project": created_project["id"]
+        },
+        headers=admin_headers
     )
 
-    assert  response.status_code==status.HTTP_200_OK
+    assert response.status_code == status.HTTP_200_OK
 
     body = response.json()
-    assert body["type"]=="staging"
+    assert body["type"] == "staging"
+
 
 def test_update_environment_to_archived_project(
         api_client,
         created_project,
         archived_project
-):
-    environment = aux_create_environment(api_client,created_project["id"])
+        , admin_headers):
+    environment = aux_create_environment(admin_headers, api_client, created_project["id"])
 
     response = api_client.patch(
         f"/api/v1/environments/{environment["id"]}",
@@ -163,7 +175,8 @@ def test_update_environment_to_archived_project(
             "type": "staging",
             "url": "http://update",
             "project_id": archived_project["id"]
-        }
+        },
+        headers=admin_headers
     )
 
     assert response.status_code == status.HTTP_409_CONFLICT
@@ -172,29 +185,24 @@ def test_update_environment_to_archived_project(
 def test_delete_environment(
         api_client,
         created_project
-):
-    environment = aux_create_environment(api_client,created_project["id"])
+        , admin_headers):
+    environment = aux_create_environment(admin_headers, api_client, created_project["id"])
 
     response = api_client.delete(
-        f"/api/v1/environments/{environment["id"]}"
+        f"/api/v1/environments/{environment["id"]}", headers=admin_headers
     )
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
 
+
 def test_delete_project_with_environments(
         api_client,
         created_project
-):
-    environment = aux_create_environment(api_client,created_project["id"])
+        , admin_headers):
+    environment = aux_create_environment(admin_headers, api_client, created_project["id"])
 
     response = api_client.delete(
-        f"/api/v1/projects/{created_project["id"]}"
+        f"/api/v1/projects/{created_project["id"]}", headers=admin_headers
     )
 
     assert response.status_code == status.HTTP_409_CONFLICT
-
-
-
-
-
-

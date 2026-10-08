@@ -71,16 +71,17 @@ def login(
 ):
     return user_service.login_user(db, data)
 
+
 @router_auth.post(
     "/refresh",
     response_model=AccessToken,
-    status_code=status.HTTP_200_OK
+    status_code=status.HTTP_201_CREATED
 )
 def refresh(
-        db:DbSession,
-        data:RefreshTokenRequest
+        db: DbSession,
+        data: RefreshTokenRequest
 ):
-    return user_service.refresh_user(db,data)
+    return user_service.refresh_user(db, data)
 
 
 @router_users.get(
@@ -175,7 +176,7 @@ def assign_user_to_client(
 
 
 @router_admin.get(
-    "/user-clients/",
+    "/user-clients/users/{user_id}/clients/{client_id}",
     response_model=UserClientRead,
     status_code=status.HTTP_200_OK
 )
@@ -186,6 +187,21 @@ def get_user_client(
         _: AdminUser
 ) -> UserClient:
     return user_client_service.get_user_client(db, user_id, client_id)
+
+
+@router_admin.get(
+    "/user-clients/",
+    response_model=UserClientRead,
+    status_code=status.HTTP_200_OK
+)
+def get_user_clients(
+        db: DbSession,
+        _: AdminUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100),
+
+) -> list[UserClient]:
+    return user_client_service.get_user_clients(db, offset, limit)
 
 
 @router_admin.delete(
@@ -272,6 +288,7 @@ def get_logs_by_user_id(
 ) -> list[Log]:
     return log_service.get_logs_by_users(db, user_id, offset, limit)
 
+
 @router_admin.get(
     "/logs/entities/{affected_entity}/{entity_id}",
     response_model=list[LogRead],
@@ -281,9 +298,8 @@ def get_logs_by_entity_type_and_id(
         db: DbSession,
         _: AdminUser,
         entity_id: int,
-        affected_entity:EntityType,
+        affected_entity: EntityType,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=20, ge=1, le=100)
 ) -> list[Log]:
-    return log_service.get_logs_by_entity(db, entity_id,affected_entity, offset, limit)
-
+    return log_service.get_logs_by_entity(db, entity_id, affected_entity, offset, limit)
