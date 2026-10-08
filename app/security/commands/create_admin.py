@@ -11,6 +11,7 @@ from app.security.models.user_model import RoleType, User
 from app.security.schemas.user_token_schemas import AdminUserCreate
 from app.security.utils import hash_password
 
+#Habilita crear un admin por consola. No se crea si ya existe 1 en la bdd.
 
 def admin_exists(db: Session) -> bool:
     statement = (
