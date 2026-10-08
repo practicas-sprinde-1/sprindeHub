@@ -274,10 +274,8 @@ def created_inactive_user() :
         db.close()
 
 
-
-
 @pytest.fixture
-def login_user_token(api_client, created_user_type_user) -> Token:
+def login_user_token(api_client, created_user_type_user) -> dict:
     response = api_client.post(
         "/api/v1/auth/login",
         json={
