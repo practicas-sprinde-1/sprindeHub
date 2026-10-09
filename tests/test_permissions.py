@@ -134,7 +134,7 @@ def test_modify_project_by_user(
 
     assert response.status_code == status.HTTP_200_OK
 
-    project_id = response.json()[0]["id"]
+    project_id = response.json()["items"][0]["id"]
 
     update_response = api_client.patch(
         f"api/v1/projects/{project_id}",
@@ -249,7 +249,7 @@ def test_guest_read_clients_and_projects(
     )
 
     assert projects_response.status_code == status.HTTP_200_OK
-    assert projects_response.json()[0]["id"] == created_project["id"]
+    assert projects_response.json()["items"][0]["id"] == created_project["id"]
 
 
 def test_guest_unauthorized_writer_on_assigned_client(

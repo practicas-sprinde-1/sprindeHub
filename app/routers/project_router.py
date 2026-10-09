@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.database.dependency import get_db
 from app.models.client import Client
 from app.models.project import Project
-from app.schemas.project_schema import ProjectCreate, ProjectUpdate, ProjectRead
+from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectDetailRead, ProjectUpdate, ProjectRead
 from app.security.dependencies import require_project_access, require_client_access, get_active_current_user, \
     require_modifier_role, check_client_access
 from app.security.models.user_model import RoleType, User
@@ -42,7 +42,7 @@ CurrentWriter = Annotated[
 
 @router.get(
     "",
-    response_model=list[ProjectRead]
+    response_model=PaginatedProjectTableRead
 )
 def find_all(
         db: DbSession,
@@ -58,7 +58,7 @@ def find_all(
 
 @router.get(
     "/{project_id}",
-    response_model=ProjectRead
+    response_model=ProjectDetailRead
 )
 def find_by_id(
         project: CurrentProject
@@ -68,7 +68,7 @@ def find_by_id(
 
 @router.get(
     "/client/{client_id}",
-    response_model=list[ProjectRead]
+    response_model=PaginatedProjectTableRead
 )
 def find_by_client_id(
         db: DbSession,
