@@ -47,7 +47,7 @@ AdminUser = Annotated[
 ]
 
 
-@router_auth.post(
+"""@router_auth.post(
     "/register",
     response_model=UserRead,
     status_code=status.HTTP_201_CREATED
@@ -58,7 +58,7 @@ def register(
 
 ):
     return user_service.create_user(db, data)
-
+"""
 
 @router_auth.post(
     "/login",
