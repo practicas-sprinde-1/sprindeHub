@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.project import Project
 from app.repositories import project_repo
-from app.schemas.project_schema import ProjectCreate, ProjectUpdate
+from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectUpdate
 from app.security.models.log_model import ActionType, EntityType
 from app.security.models.user_model import User
 from app.security.services import log_service
@@ -29,7 +29,7 @@ def get_projects_by_id_client(
         offset: int,
         limit: int
 
-) -> list[Project]:
+) -> PaginatedProjectTableRead:
     projects = project_repo.find_by_client_id(db, client_id, offset, limit)
     return projects
 
@@ -38,7 +38,7 @@ def get_projects(
         db: Session,
         offset: int,
         limit: int
-) -> list[Project]:
+) -> PaginatedProjectTableRead:
     return project_repo.find_all(db, offset, limit)
 
 
@@ -47,7 +47,7 @@ def get_projects_by_users(
         user_id: int,
         offset: int,
         limit: int
-) -> list[Project]:
+) -> PaginatedProjectTableRead:
     return project_repo.find_all_by_users(db, user_id, offset, limit)
 
 

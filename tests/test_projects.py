@@ -78,8 +78,106 @@ def test_list_projects(api_client, created_client, admin_headers):
     assert response.status_code == status.HTTP_200_OK
 
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["id"] == project["id"]
+    assert body["total"] == 1
+    assert body["offset"] == 0
+    assert body["limit"] == 20
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == project["id"]
+
+
+def test_list_projects_returns_total_and_respects_pagination(
+        api_client, created_client, admin_headers):
+    first_project = aux_create_project(
+        admin_headers,
+        api_client,
+        created_client["id"],
+        name="Primer proyecto",
+    )
+    second_project = aux_create_project(
+        admin_headers,
+        api_client,
+        created_client["id"],
+        name="Segundo proyecto",
+    )
+
+    response = api_client.get(
+        "/api/v1/projects?offset=1&limit=1",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["total"] == 2
+    assert body["offset"] == 1
+    assert body["limit"] == 1
+    assert len(body["items"]) == 1
+    assert body["items"][0]["id"] == second_project["id"]
+    assert first_project["id"] != second_project["id"]
+
+
+def test_list_projects_includes_the_data_required_by_the_table(
+        api_client, created_client, admin_headers):
+    project = aux_create_project(admin_headers, api_client, created_client["id"])
+    project_id = project["id"]
+
+    resources = (
+        ("/api/v1/environments", {"type": "production", "url": "https://erp.acme.es"}),
+        ("/api/v1/environments", {"type": "staging", "url": "https://staging.erp.acme.es"}),
+        ("/api/v1/repositories", {"type": "backend", "url": "https://github.com/sprinde/acme-erp-api"}),
+        ("/api/v1/services", {"name": "Hetzner"}),
+        ("/api/v1/domains", {"url": "https://erp.acme.es"}),
+        ("/api/v1/commands", {"name": "deploy", "instruction": "./deploy.sh production"}),
+        ("/api/v1/links", {"title": "Runbook", "url": "https://docs.acme.es/runbook"}),
+        ("/api/v1/notes", {"description": "Facturación", "content": "Se ejecuta cada noche."}),
+    )
+
+    for url, payload in resources:
+        response = api_client.post(
+            url,
+            json={"project_id": project_id, **payload},
+            headers=admin_headers,
+        )
+        assert response.status_code == status.HTTP_201_CREATED
+
+    response = api_client.get("/api/v1/projects", headers=admin_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["total"] == 1
+    row = body["items"][0]
+    assert row == {
+        "id": project_id,
+        "name": "Proyecto auxiliar",
+        "client": {"id": created_client["id"], "name": "Cliente de prueba"},
+        "environments": [
+            {"id": row["environments"][0]["id"], "type": "production", "url": "https://erp.acme.es"},
+            {"id": row["environments"][1]["id"], "type": "staging", "url": "https://staging.erp.acme.es"},
+        ],
+        "repositories": [
+            {"id": row["repositories"][0]["id"], "type": "backend", "url": "https://github.com/sprinde/acme-erp-api"}
+        ],
+        "services": [{"id": row["services"][0]["id"], "name": "Hetzner"}],
+        "domains": [{"id": row["domains"][0]["id"], "url": "https://erp.acme.es"}],
+        "commands_count": 1,
+        "links_count": 1,
+        "notes_count": 1,
+    }
+
+    detail_response = api_client.get(
+        f"/api/v1/projects/{project_id}",
+        headers=admin_headers,
+    )
+    assert detail_response.status_code == status.HTTP_200_OK
+
+    detail = detail_response.json()
+    assert detail["client"]["name"] == "Cliente de prueba"
+    assert detail["environments"][0]["type"] == "production"
+    assert detail["repositories"][0]["type"] == "backend"
+    assert detail["services"][0]["name"] == "Hetzner"
+    assert detail["domains"][0]["url"] == "https://erp.acme.es"
+    assert detail["commands"][0]["instruction"] == "./deploy.sh production"
+    assert detail["links"][0]["title"] == "Runbook"
+    assert detail["notes"][0]["content"] == "Se ejecuta cada noche."
 
 
 def test_get_project_by_id(api_client, created_client, admin_headers):
@@ -125,9 +223,10 @@ def test_list_projects_by_client(api_client, created_client, admin_headers):
     assert response.status_code == status.HTTP_200_OK
 
     body = response.json()
-    assert len(body) == 2
-    assert body[0]["id"] == first_project["id"]
-    assert body[1]["id"] == second_project["id"]
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+    assert body["items"][0]["id"] == first_project["id"]
+    assert body["items"][1]["id"] == second_project["id"]
 
 
 def test_update_project_name_and_description(api_client, created_client, admin_headers):
