@@ -199,3 +199,17 @@ def get_active_client(db: Session, client_id: int) -> Client:
         )
 
     return client
+
+def create_client_in_project_service(
+    db: Session,
+    data: ClientCreate,
+) -> Client:
+    client = Client(
+        name=data.name,
+        cif=data.cif,
+        phone=data.phone,
+    )
+
+    db.add(client)
+    db.flush()
+    return client

@@ -1,9 +1,17 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.models.client import Client
+from app.models.environment import Environment
+from app.models.repository import Repository
+from app.models.service import Service
+from app.models.domain import Domain
+from app.models.command import Command
+from app.models.link import Link
+from app.models.note import Note
 from app.models.project import Project
 from app.repositories import project_repo
-from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectUpdate
+from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectUpdate, ProjectFullCreate
 from app.security.models.log_model import ActionType, EntityType
 from app.security.models.user_model import User
 from app.security.services import log_service
@@ -239,3 +247,108 @@ def get_active_project(
             detail="El proyecto está archivado",
         )
     return project
+
+def create_full_project(
+    db: Session,
+    data: ProjectFullCreate,
+    current_user: User,
+) -> Project:
+    try:
+        if data.client_id is not None:
+            client = client_service.get_active_client(db, data.client_id)
+        else:
+            client = Client(
+                name=data.client.name,
+                cif=data.client.cif,
+                phone=data.client.phone,
+            )
+            db.add(client)
+            db.flush()
+
+            log_service.register_log(
+                db=db,
+                user_id=current_user.id,
+                action=ActionType.CREATE,
+                affected_entity=EntityType.CLIENT,
+                affected_entity_id=client.id,
+            )
+
+        project = Project(
+            name=data.name,
+            description=data.description,
+            is_active=data.is_active,
+            client_id=client.id,
+        )
+
+        db.add(project)
+        db.flush()
+
+        for item in data.environments:
+            environment = Environment(
+                project_id=project.id,
+                type=item.type,
+                url=item.url,
+            )
+            db.add(environment)
+
+        for item in data.repositories:
+            repository = Repository(
+                project_id=project.id,
+                type=item.type,
+                url=item.url,
+            )
+            db.add(repository)
+
+        for item in data.services:
+            service = Service(
+                project_id=project.id,
+                name=item.name,
+            )
+            db.add(service)
+
+        for item in data.domains:
+            domain = Domain(
+                project_id=project.id,
+                url=item.url,
+            )
+            db.add(domain)
+
+        for item in data.commands:
+            command = Command(
+                project_id=project.id,
+                name=item.name,
+                instruction=item.instruction,
+            )
+            db.add(command)
+
+        for item in data.links:
+            link = Link(
+                project_id=project.id,
+                title=item.title,
+                url=item.url,
+            )
+            db.add(link)
+
+        for item in data.notes:
+            note = Note(
+                project_id=project.id,
+                description=item.description,
+                content=item.content,
+            )
+            db.add(note)
+
+        log_service.register_log(
+            db=db,
+            user_id=current_user.id,
+            action=ActionType.CREATE,
+            affected_entity=EntityType.PROJECT,
+            affected_entity_id=project.id,
+        )
+
+        db.commit()
+        db.refresh(project)
+        return project
+
+    except Exception:
+        db.rollback()
+        raise

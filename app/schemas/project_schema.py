@@ -1,13 +1,16 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.schemas.client_schema import ClientRead
-from app.schemas.command_schema import CommandRead
-from app.schemas.environment_schema import EnvironmentRead
-from app.schemas.domain_schema import DomainRead
-from app.schemas.link_schema import LinkRead
-from app.schemas.note_schema import NoteRead
-from app.schemas.repository_schema import RepositoryRead
-from app.schemas.service_schema import ServiceRead
+from app.models.environment import EnvironmentType
+from app.models.repository import RepositoryType
+from app.schemas.client_schema import ClientRead, ClientCreate
+from app.schemas.command_schema import CommandRead, CommandCreate
+from app.schemas.environment_schema import EnvironmentRead, EnvironmentCreate
+from app.schemas.domain_schema import DomainRead, DomainCreate
+from app.schemas.link_schema import LinkRead, LinkCreate
+from app.schemas.note_schema import NoteRead, NoteCreate
+from app.schemas.repository_schema import RepositoryRead, RepositoryCreate
+from app.schemas.service_schema import ServiceRead, ServiceCreate
+
 
 class ProjectBase(BaseModel):
     name: str = Field(
@@ -58,7 +61,7 @@ class ClientTableRead(BaseModel):
 
 class EnvironmentTableRead(BaseModel):
     id: int
-    type: str
+    type: EnvironmentType
     url: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -66,7 +69,7 @@ class EnvironmentTableRead(BaseModel):
 
 class RepositoryTableRead(BaseModel):
     id: int
-    type: str
+    type: RepositoryType
     url: str
 
     model_config = ConfigDict(from_attributes=True)
@@ -120,3 +123,95 @@ class ProjectDetailRead(ProjectRead):
     services: list[ServiceRead]
     commands: list[CommandRead]
     notes: list[NoteRead]
+
+
+class EnvironmentInProjectCreate(BaseModel):
+    type: EnvironmentType
+    url: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^https?://",
+    )
+
+
+class RepositoryInProjectCreate(BaseModel):
+    type: RepositoryType
+    url: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^https?://",
+    )
+
+
+class ServiceInProjectCreate(BaseModel):
+    name: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+
+class DomainInProjectCreate(BaseModel):
+    url: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^https?://",
+    )
+
+
+class CommandInProjectCreate(BaseModel):
+    name: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+    instruction: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+
+
+class LinkInProjectCreate(BaseModel):
+    title: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+    url: str = Field(
+        min_length=1,
+        max_length=255,
+        pattern=r"^https?://",
+    )
+
+
+class NoteInProjectCreate(BaseModel):
+    description: str = Field(
+        min_length=1,
+        max_length=255,
+    )
+    content: str = Field(
+        min_length=1,
+        max_length=5000,
+    )
+
+
+class ProjectFullCreate(ProjectBase):
+    is_active: bool = True
+
+    client_id: int |None = None
+    client:ClientCreate |None = None
+
+    environments: list[EnvironmentInProjectCreate] = Field(default_factory=list)
+    repositories: list[RepositoryInProjectCreate] = Field(default_factory=list)
+    services: list[ServiceInProjectCreate] = Field(default_factory=list)
+    domains: list[DomainInProjectCreate] = Field(default_factory=list)
+    commands: list[CommandInProjectCreate] = Field(default_factory=list)
+    links: list[LinkInProjectCreate] = Field(default_factory=list)
+    notes: list[NoteInProjectCreate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_client(self):
+        if (self.client is None) == (self.client_id is None):
+            raise ValueError(
+                "Debe tener un cliente asociado"
+            )
+        return self
+
+
