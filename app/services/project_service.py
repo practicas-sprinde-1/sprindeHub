@@ -13,6 +13,7 @@ from app.models.project import Project
 from app.repositories import project_repo
 from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectUpdate, ProjectFullCreate
 from app.security.models.log_model import ActionType, EntityType
+from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
 from app.security.services import log_service
 from app.services import client_service
@@ -265,6 +266,13 @@ def create_full_project(
             db.add(client)
             db.flush()
 
+            user_client = UserClient(
+                user_id=current_user.id,
+                client_id=client.id
+            )
+
+            db.add(user_client)
+
             log_service.register_log(
                 db=db,
                 user_id=current_user.id,
@@ -282,6 +290,7 @@ def create_full_project(
 
         db.add(project)
         db.flush()
+
 
         for item in data.environments:
             environment = Environment(

@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.database.dependency import get_db
 from app.models.client import Client
 from app.models.project import Project
-from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectDetailRead, ProjectUpdate, ProjectRead
+from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectDetailRead, ProjectUpdate, \
+    ProjectRead, ProjectFullCreate
 from app.security.dependencies import require_project_access, require_client_access, get_active_current_user, \
     require_modifier_role, check_client_access
 from app.security.models.user_model import RoleType, User
@@ -93,6 +94,23 @@ def create(
     check_client_access(db, current_user, data.client_id)
 
     return project_service.create_project(db, data,current_user)
+
+@router.post(
+    "/create-completed-project",
+    response_model=ProjectRead,
+    status_code=status.HTTP_201_CREATED
+)
+def create(
+        db: DbSession,
+        data: ProjectFullCreate,
+        current_user: CurrentWriter,
+
+):
+    if data.client_id is not None:
+        check_client_access(db, current_user, data.client_id)
+
+    return project_service.create_full_project(db, data,current_user)
+
 
 
 @router.patch(
