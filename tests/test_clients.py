@@ -444,6 +444,35 @@ def test_delete_client_success(api_client, admin_headers):
     assert delete_response.status_code == status.HTTP_200_OK
 
 
+def test_delete_client_orphans_its_projects(
+        api_client, created_client, admin_headers):
+    create_project_response = api_client.post(
+        "/api/v1/projects",
+        json={
+            "name": "Proyecto que quedará huérfano",
+            "description": "Debe conservarse al borrar su cliente.",
+            "client_id": created_client["id"],
+        },
+        headers=admin_headers,
+    )
+    assert create_project_response.status_code == status.HTTP_201_CREATED
+    project_id = create_project_response.json()["id"]
+
+    delete_response = api_client.delete(
+        f"/api/v1/clients/{created_client['id']}",
+        headers=admin_headers,
+    )
+    assert delete_response.status_code == status.HTTP_200_OK
+
+    project_response = api_client.get(
+        f"/api/v1/projects/{project_id}",
+        headers=admin_headers,
+    )
+    assert project_response.status_code == status.HTTP_200_OK
+    assert project_response.json()["client_id"] is None
+    assert project_response.json()["client"] is None
+
+
 def test_delete_client_not_found(api_client, admin_headers):
     non_exist_client: int = 9999
     delete_response = api_client.delete(

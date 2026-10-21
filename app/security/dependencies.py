@@ -102,11 +102,17 @@ def require_modifier_role(
 def check_client_access(
         db:Session,
         current_user:User,
-        client_id:int
+        client_id:int | None
 )->None:
 
     if current_user.role== RoleType.ADMIN:
         return
+
+    if client_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No estás autorizado a acceder a un proyecto sin cliente.",
+        )
 
     #Equivale a:
     # SELECT * FROM user_clients

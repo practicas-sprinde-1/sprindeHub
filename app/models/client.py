@@ -44,9 +44,13 @@ class Client(Base):
     )
 
     projects: Mapped[list["Project"]] = relationship(
-        back_populates="client"
+        back_populates="client",
+        passive_deletes=True,
     )
 
-    user_clients:Mapped[list["UserClient"]] = relationship(back_populates="client")
+    user_clients: Mapped[list["UserClient"]] = relationship(
+        back_populates="client",
+        passive_deletes=True,
+    )
 
 

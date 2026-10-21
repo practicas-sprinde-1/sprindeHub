@@ -23,7 +23,7 @@ class ProjectBase(BaseModel):
         max_length=500
     )
 
-    client_id: int = Field(gt=0)
+    client_id: int | None = Field(default=None, gt=0)
 
 class ProjectCreate(ProjectBase):
    pass
@@ -93,7 +93,7 @@ class ProjectTableRead(BaseModel):
 
     id: int
     name: str
-    client: ClientTableRead
+    client: ClientTableRead | None
     environments: list[EnvironmentTableRead]
     repositories: list[RepositoryTableRead]
     services: list[ServiceTableRead]
@@ -115,7 +115,7 @@ class PaginatedProjectTableRead(BaseModel):
 
 class ProjectDetailRead(ProjectRead):
 
-    client: ClientRead
+    client: ClientRead | None
     environments: list[EnvironmentRead]
     repositories: list[RepositoryRead]
     domains: list[DomainRead]
@@ -208,9 +208,9 @@ class ProjectFullCreate(ProjectBase):
 
     @model_validator(mode="after")
     def validate_client(self):
-        if (self.client is None) == (self.client_id is None):
+        if self.client is not None and self.client_id is not None:
             raise ValueError(
-                "Debe tener un cliente asociado"
+                "Indica un cliente existente o los datos de un cliente nuevo, no ambos."
             )
         return self
 

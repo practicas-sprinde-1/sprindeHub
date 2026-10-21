@@ -25,9 +25,9 @@ class Project(Base):
         autoincrement=True
     )
 
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"),
-        nullable=False,
+    client_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clients.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     name: Mapped[str] = mapped_column(
@@ -41,8 +41,9 @@ class Project(Base):
         nullable=True,
     )
 
-    client: Mapped["Client"] = relationship(
-        back_populates="projects"
+    client: Mapped["Client | None"] = relationship(
+        back_populates="projects",
+        passive_deletes=True,
     )
 
     environments: Mapped[list["Environment"]] = relationship(

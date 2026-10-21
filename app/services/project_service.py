@@ -73,12 +73,13 @@ def create_project(
         data: ProjectCreate,
         current_user: User
 ) -> Project:
-    client = client_service.get_active_client(db, data.client_id)
+    if data.client_id is not None:
+        client_service.get_active_client(db, data.client_id)
 
     project = Project(
         name=data.name,
         description=data.description,
-        client_id=client.id
+        client_id=data.client_id,
     )
 
     try:
@@ -110,7 +111,7 @@ def update_project(
     updates = data.model_dump(
         exclude_unset=True
     )
-    if "client_id" in updates:
+    if updates.get("client_id") is not None:
         client_service.get_active_client(db, updates["client_id"])
 
     for field, value in updates.items():
@@ -162,7 +163,7 @@ def delete_project(
         )
 
     project_name = project.name
-    client_name = project.client.name
+    client_name = project.client.name if project.client is not None else None
 
     try:
         project_repo.delete(db, project)
@@ -175,6 +176,8 @@ def delete_project(
             affected_entity_id=project.id
         )
         db.commit()
+        if client_name is None:
+            return f"El proyecto huérfano {project_name} ha sido borrado correctamente"
         return f"El proyecto {project_name} del cliente {client_name} ha sido borrado correctamente"
     except Exception:
         db.rollback()
@@ -255,9 +258,11 @@ def create_full_project(
     current_user: User,
 ) -> Project:
     try:
-        if data.client_id is not None:
-            client = client_service.get_active_client(db, data.client_id)
-        else:
+        client_id = data.client_id
+        if client_id is not None:
+            client = client_service.get_active_client(db, client_id)
+            client_id = client.id
+        elif data.client is not None:
             client = Client(
                 name=data.client.name,
                 cif=data.client.cif,
@@ -280,12 +285,13 @@ def create_full_project(
                 affected_entity=EntityType.CLIENT,
                 affected_entity_id=client.id,
             )
+            client_id = client.id
 
         project = Project(
             name=data.name,
             description=data.description,
             is_active=data.is_active,
-            client_id=client.id,
+            client_id=client_id,
         )
 
         db.add(project)

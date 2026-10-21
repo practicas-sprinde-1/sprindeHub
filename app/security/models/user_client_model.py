@@ -16,7 +16,7 @@ class UserClient(Base):
     )
 
     client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"),
+        ForeignKey("clients.id", ondelete="CASCADE"),
         primary_key=True,
     )
 
