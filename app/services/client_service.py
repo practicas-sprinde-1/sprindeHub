@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.client import Client
 from app.repositories import client_repo
-from app.schemas.client_schema import ClientCreate, ClientUpdate
+from app.schemas.client_schema import ClientCreate, ClientUpdate, PaginatedClientRead
 from app.security.models.log_model import EntityType, ActionType
 from app.security.models.user_model import User
 from app.security.services import log_service
@@ -44,8 +44,17 @@ def get_archived_clients(
         db: Session,
         offset: int,
         limit: int
-) -> list[Client]:
+) -> PaginatedClientRead:
     return client_repo.find_all_archived(db, offset, limit)
+
+
+def get_archived_clients_by_user(
+        db: Session,
+        user_id: int,
+        offset: int,
+        limit: int,
+) -> PaginatedClientRead:
+    return client_repo.find_all_archived_by_user(db, user_id, offset, limit)
 
 
 

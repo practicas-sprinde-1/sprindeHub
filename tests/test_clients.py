@@ -172,6 +172,41 @@ def test_list_clients_returns_empty_list(api_client, admin_headers):
     assert response.json() == []
 
 
+def test_list_archived_clients_returns_total_and_respects_pagination(
+        api_client, admin_headers):
+    client_ids = []
+    for name, cif, phone in (
+        ("Primer cliente archivado", "B12345670", "600123120"),
+        ("Segundo cliente archivado", "B12345671", "600123121"),
+    ):
+        create_response = api_client.post(
+            "/api/v1/clients",
+            json={"name": name, "cif": cif, "phone": phone},
+            headers=admin_headers,
+        )
+        assert create_response.status_code == status.HTTP_201_CREATED
+        client_id = create_response.json()["id"]
+        client_ids.append(client_id)
+
+        archive_response = api_client.patch(
+            f"/api/v1/clients/{client_id}/archive",
+            headers=admin_headers,
+        )
+        assert archive_response.status_code == status.HTTP_200_OK
+
+    response = api_client.get(
+        "/api/v1/clients/archived?offset=1&limit=1",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["total"] == 2
+    assert body["offset"] == 1
+    assert body["limit"] == 1
+    assert [item["id"] for item in body["items"]] == [client_ids[1]]
+
+
 def test_list_clients_returns_clients(api_client, admin_headers):
     create_response = api_client.post(
         "/api/v1/clients",

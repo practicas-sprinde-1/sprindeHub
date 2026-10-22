@@ -115,6 +115,41 @@ def test_list_projects_returns_total_and_respects_pagination(
     assert first_project["id"] != second_project["id"]
 
 
+def test_list_archived_projects_returns_total_and_respects_pagination(
+        api_client, created_client, admin_headers):
+    first_project = aux_create_project(
+        admin_headers,
+        api_client,
+        created_client["id"],
+        name="Primer proyecto archivado",
+    )
+    second_project = aux_create_project(
+        admin_headers,
+        api_client,
+        created_client["id"],
+        name="Segundo proyecto archivado",
+    )
+
+    for project in (first_project, second_project):
+        response = api_client.patch(
+            f"/api/v1/projects/{project['id']}/archive",
+            headers=admin_headers,
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    response = api_client.get(
+        "/api/v1/projects/archived?offset=1&limit=1",
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    body = response.json()
+    assert body["total"] == 2
+    assert body["offset"] == 1
+    assert body["limit"] == 1
+    assert [item["id"] for item in body["items"]] == [second_project["id"]]
+
+
 def test_list_projects_includes_the_data_required_by_the_table(
         api_client, created_client, admin_headers):
     project = aux_create_project(admin_headers, api_client, created_client["id"])

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
 from app.models.client import Client
-from app.schemas.client_schema import ClientRead, ClientCreate, ClientUpdate
+from app.schemas.client_schema import ClientRead, ClientCreate, ClientUpdate, PaginatedClientRead
 from app.security.dependencies import require_client_access, require_modifier_role, require_admin, \
     get_active_current_user
 from app.security.models.user_model import User, RoleType
@@ -55,6 +55,22 @@ def find_all(
         return client_service.get_clients(db, offset, limit)
 
     return client_service.get_clients_by_user(db,user.id,offset, limit)
+
+
+@router.get(
+    "/archived",
+    response_model=PaginatedClientRead,
+)
+def find_all_archived(
+        db: DbSession,
+        user: CurrentUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100),
+):
+    if user.role == RoleType.ADMIN:
+        return client_service.get_archived_clients(db, offset, limit)
+
+    return client_service.get_archived_clients_by_user(db, user.id, offset, limit)
 
 
 @router.get(

@@ -64,8 +64,17 @@ def get_archived_projects(
         db: Session,
         offset: int,
         limit: int
-) -> list[Project]:
+) -> PaginatedProjectTableRead:
     return project_repo.find_all_archived(db, offset, limit)
+
+
+def get_archived_projects_by_users(
+        db: Session,
+        user_id: int,
+        offset: int,
+        limit: int,
+) -> PaginatedProjectTableRead:
+    return project_repo.find_all_archived_by_users(db, user_id, offset, limit)
 
 
 def create_project(

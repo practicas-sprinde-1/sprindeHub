@@ -176,16 +176,152 @@ def find_all_archived(
         offset: int = 0,
         limit: int = 20,
 
-) -> list[Project]:
+) -> PaginatedProjectTableRead:
+    commands_count_query = (
+        select(func.count(Command.id))
+        .where(Command.project_id == Project.id)
+        .scalar_subquery()
+        .label("commands_count")
+    )
+    links_count_query = (
+        select(func.count(Link.id))
+        .where(Link.project_id == Project.id)
+        .scalar_subquery()
+        .label("links_count")
+    )
+    notes_count_query = (
+        select(func.count(Note.id))
+        .where(Note.project_id == Project.id)
+        .scalar_subquery()
+        .label("notes_count")
+    )
+
+    total_statement = (
+        select(func.count(Project.id))
+        .where(Project.is_active.is_(False))
+    )
+    total = db.scalar(total_statement) or 0
+
     statement = (
-        select(Project)
+        select(
+            Project,
+            commands_count_query,
+            links_count_query,
+            notes_count_query,
+        )
+        .options(
+            joinedload(Project.client),
+            selectinload(Project.environments),
+            selectinload(Project.repositories),
+            selectinload(Project.services),
+            selectinload(Project.domains),
+        )
         .where(Project.is_active.is_(False))
         .offset(offset)
         .limit(limit)
         .order_by(Project.id)
     )
-    return list(
-        db.scalars(statement).all()
+
+    rows = db.execute(statement).all()
+    projects = [
+        ProjectTableRead(
+            id=project.id,
+            name=project.name,
+            client=project.client,
+            environments=project.environments,
+            repositories=project.repositories,
+            services=project.services,
+            domains=project.domains,
+            commands_count=commands_count,
+            links_count=links_count,
+            notes_count=notes_count,
+        )
+        for project, commands_count, links_count, notes_count in rows
+    ]
+
+    return PaginatedProjectTableRead(
+        items=projects,
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
+
+
+def find_all_archived_by_users(
+        db: Session,
+        user_id: int,
+        offset: int = 0,
+        limit: int = 20,
+) -> PaginatedProjectTableRead:
+    commands_count_query = (
+        select(func.count(Command.id))
+        .where(Command.project_id == Project.id)
+        .scalar_subquery()
+        .label("commands_count")
+    )
+    links_count_query = (
+        select(func.count(Link.id))
+        .where(Link.project_id == Project.id)
+        .scalar_subquery()
+        .label("links_count")
+    )
+    notes_count_query = (
+        select(func.count(Note.id))
+        .where(Note.project_id == Project.id)
+        .scalar_subquery()
+        .label("notes_count")
+    )
+
+    total_statement = (
+        select(func.count(Project.id))
+        .join(UserClient, UserClient.client_id == Project.client_id)
+        .where(UserClient.user_id == user_id, Project.is_active.is_(False))
+    )
+    total = db.scalar(total_statement) or 0
+
+    statement = (
+        select(
+            Project,
+            commands_count_query,
+            links_count_query,
+            notes_count_query,
+        )
+        .options(
+            joinedload(Project.client),
+            selectinload(Project.environments),
+            selectinload(Project.repositories),
+            selectinload(Project.services),
+            selectinload(Project.domains),
+        )
+        .join(UserClient, UserClient.client_id == Project.client_id)
+        .where(UserClient.user_id == user_id, Project.is_active.is_(False))
+        .offset(offset)
+        .limit(limit)
+        .order_by(Project.id)
+    )
+
+    rows = db.execute(statement).all()
+    projects = [
+        ProjectTableRead(
+            id=project.id,
+            name=project.name,
+            client=project.client,
+            environments=project.environments,
+            repositories=project.repositories,
+            services=project.services,
+            domains=project.domains,
+            commands_count=commands_count,
+            links_count=links_count,
+            notes_count=notes_count,
+        )
+        for project, commands_count, links_count, notes_count in rows
+    ]
+
+    return PaginatedProjectTableRead(
+        items=projects,
+        total=total,
+        offset=offset,
+        limit=limit,
     )
 
 

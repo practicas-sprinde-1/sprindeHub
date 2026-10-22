@@ -1,7 +1,8 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
+from app.schemas.client_schema import PaginatedClientRead
 from app.security.models.user_client_model import UserClient
 
 
@@ -44,15 +45,57 @@ def find_all_archived(
         db: Session,
         offset: int = 0,
         limit: int = 20,
-) -> list[Client]:
+) -> PaginatedClientRead:
+    total_statement = (
+        select(func.count(Client.id))
+        .where(Client.is_active.is_(False))
+    )
+    total = db.scalar(total_statement) or 0
+
     statement = (
         select(Client)
         .where(Client.is_active.is_(False))
         .offset(offset)
         .limit(limit)
+        .order_by(Client.id)
     )
 
-    return list(db.scalars(statement).all())
+    return PaginatedClientRead(
+        items=list(db.scalars(statement).all()),
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
+
+
+def find_all_archived_by_user(
+        db: Session,
+        user_id: int,
+        offset: int = 0,
+        limit: int = 20,
+) -> PaginatedClientRead:
+    total_statement = (
+        select(func.count(Client.id))
+        .join(UserClient, UserClient.client_id == Client.id)
+        .where(UserClient.user_id == user_id, Client.is_active.is_(False))
+    )
+    total = db.scalar(total_statement) or 0
+
+    statement = (
+        select(Client)
+        .join(UserClient, UserClient.client_id == Client.id)
+        .where(UserClient.user_id == user_id, Client.is_active.is_(False))
+        .offset(offset)
+        .limit(limit)
+        .order_by(Client.id)
+    )
+
+    return PaginatedClientRead(
+        items=list(db.scalars(statement).all()),
+        total=total,
+        offset=offset,
+        limit=limit,
+    )
 
 
 def find_by_id(

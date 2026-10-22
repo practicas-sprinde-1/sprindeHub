@@ -58,6 +58,24 @@ def find_all(
 
 
 @router.get(
+    "/archived",
+    response_model=PaginatedProjectTableRead
+)
+def find_all_archived(
+        db: DbSession,
+        current_user: CurrentUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100)
+):
+    if current_user.role == RoleType.ADMIN:
+        return project_service.get_archived_projects(db, offset, limit)
+
+    return project_service.get_archived_projects_by_users(
+        db, current_user.id, offset, limit
+    )
+
+
+@router.get(
     "/{project_id}",
     response_model=ProjectDetailRead
 )
