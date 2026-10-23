@@ -298,5 +298,19 @@ def admin_update_user(
 
     return user_repo.save(db, user)
 
+def admin_delete_user(
+        db:Session,
+        user_id:int
+)->None:
+
+    user = user_repo.find_by_id(db,user_id);
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    return user_repo.delete(db,user)
+
 
 

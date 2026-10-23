@@ -164,12 +164,17 @@ def test_get_client_by_id_rejects_non_integer_id(api_client, admin_headers):
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
-def test_list_clients_returns_empty_list(api_client, admin_headers):
+def test_list_clients_returns_empty_page(api_client, admin_headers):
     response = api_client.get(f"/api/v1/clients/",headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
 
-    assert response.json() == []
+    assert response.json() == {
+        "items": [],
+        "total": 0,
+        "offset": 0,
+        "limit": 20,
+    }
 
 
 def test_list_archived_clients_returns_total_and_respects_pagination(
@@ -226,29 +231,32 @@ def test_list_clients_returns_clients(api_client, admin_headers):
 
     assert response.status_code == status.HTTP_200_OK
 
-    assert response.json() == [
-        {
+    assert response.json() == {
+        "items": [{
             "id": created_client["id"],
             "name": "Prueba",
             "cif": "B12345678",
             "phone": "600123123",
-            "is_active":True
-        }
-    ]
+            "is_active": True,
+        }],
+        "total": 1,
+        "offset": 0,
+        "limit": 20,
+    }
 
 
 def test_list_clients_respects_limit(api_client, admin_headers):
     response = api_client.get(f"/api/v1/clients?limit=20",headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == []
+    assert response.json()["items"] == []
 
 
 def test_list_clients_respects_offset(api_client, admin_headers):
     response = api_client.get(f"/api/v1/clients?offset=1",headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
-    assert response.json() == []
+    assert response.json()["items"] == []
 
 
 def test_list_clients_rejects_negative_offset(api_client, admin_headers):
@@ -299,6 +307,11 @@ def test_update_client_name_success(api_client, admin_headers):
     assert body["name"] == "Prueba updated"
     assert body["cif"] == "B12345678"
     assert body["phone"] == "600123123"
+
+    list_response = api_client.get("/api/v1/clients", headers=admin_headers)
+
+    assert list_response.status_code == status.HTTP_200_OK
+    assert list_response.json()["items"][0]["name"] == "Prueba updated"
 
 
 def test_update_client_phone_success(api_client, admin_headers):

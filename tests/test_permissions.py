@@ -233,7 +233,7 @@ def test_guest_read_clients_and_projects(
     )
 
     assert clients_response.status_code == status.HTTP_200_OK
-    assert clients_response.json()[0]["id"] == created_client["id"]
+    assert clients_response.json()["items"][0]["id"] == created_client["id"]
 
     client_response = api_client.get(
         f"/api/v1/clients/{created_client['id']}",

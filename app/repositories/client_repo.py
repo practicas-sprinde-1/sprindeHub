@@ -10,62 +10,27 @@ def find_all(
         db: Session,
         offset: int = 0,
         limit: int = 20,
+) -> PaginatedClientRead:
+    return _find_all(db, is_active=True, offset=offset, limit=limit)
 
-) -> list[Client]:
-    statement = (
-        select(Client)
-        .where(Client.is_active.is_(True))
-        .offset(offset)
-        .limit(limit)
-        .order_by(Client.id)
-    )
-    return list(
-        db.scalars(statement).all()
-    )
+
 def find_all_by_user(
         db: Session,
         user_id: int,
         offset: int = 0,
         limit: int = 20,
+) -> PaginatedClientRead:
+    return _find_all(
+        db, is_active=True, offset=offset, limit=limit, user_id=user_id
+    )
 
-) -> list[Client]:
-    statement = (
-        select(Client)
-        .join(UserClient, UserClient.client_id==Client.id)
-        .where(UserClient.user_id==user_id, Client.is_active.is_(True))
-        .offset(offset)
-        .limit(limit)
-        .order_by(Client.id)
-    )
-    return list(
-        db.scalars(statement).all()
-    )
 
 def find_all_archived(
         db: Session,
         offset: int = 0,
         limit: int = 20,
 ) -> PaginatedClientRead:
-    total_statement = (
-        select(func.count(Client.id))
-        .where(Client.is_active.is_(False))
-    )
-    total = db.scalar(total_statement) or 0
-
-    statement = (
-        select(Client)
-        .where(Client.is_active.is_(False))
-        .offset(offset)
-        .limit(limit)
-        .order_by(Client.id)
-    )
-
-    return PaginatedClientRead(
-        items=list(db.scalars(statement).all()),
-        total=total,
-        offset=offset,
-        limit=limit,
-    )
+    return _find_all(db, is_active=False, offset=offset, limit=limit)
 
 
 def find_all_archived_by_user(
@@ -74,17 +39,36 @@ def find_all_archived_by_user(
         offset: int = 0,
         limit: int = 20,
 ) -> PaginatedClientRead:
+    return _find_all(
+        db, is_active=False, offset=offset, limit=limit, user_id=user_id
+    )
+
+
+def _find_all(
+        db: Session,
+        is_active: bool,
+        offset: int,
+        limit: int,
+        user_id: int | None = None,
+) -> PaginatedClientRead:
     total_statement = (
         select(func.count(Client.id))
-        .join(UserClient, UserClient.client_id == Client.id)
-        .where(UserClient.user_id == user_id, Client.is_active.is_(False))
+        .where(Client.is_active.is_(is_active))
     )
-    total = db.scalar(total_statement) or 0
 
+    statement = select(Client).where(Client.is_active.is_(is_active))
+
+    if user_id is not None:
+        total_statement = total_statement.join(
+            UserClient, UserClient.client_id == Client.id
+        ).where(UserClient.user_id == user_id)
+        statement = statement.join(
+            UserClient, UserClient.client_id == Client.id
+        ).where(UserClient.user_id == user_id)
+
+    total = db.scalar(total_statement) or 0
     statement = (
-        select(Client)
-        .join(UserClient, UserClient.client_id == Client.id)
-        .where(UserClient.user_id == user_id, Client.is_active.is_(False))
+        statement
         .offset(offset)
         .limit(limit)
         .order_by(Client.id)

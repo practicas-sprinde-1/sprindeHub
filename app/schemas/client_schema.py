@@ -39,6 +39,10 @@ class ClientUpdate(BaseModel):
         max_length=120
     )
 
+    is_active: bool | None =Field(
+        default=None
+    )
+
 
 class ClientRead(ClientBase):
     id: int

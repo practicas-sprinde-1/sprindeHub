@@ -146,6 +146,17 @@ def admin_create_user(
 ):
     return user_service.admin_create_user(db, data)
 
+@router_admin.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_200_OK
+)
+def admin_delete_user(
+        db:DbSession,
+        _:AdminUser,
+        user_id:int
+):
+    return user_service.admin_delete_user(db,user_id)
+
 
 @router_admin.patch(
     "/users/{user_id}",
@@ -191,7 +202,7 @@ def get_user_client(
 
 @router_admin.get(
     "/user-clients/",
-    response_model=UserClientRead,
+    response_model=list[UserClientRead],
     status_code=status.HTTP_200_OK
 )
 def get_user_clients(

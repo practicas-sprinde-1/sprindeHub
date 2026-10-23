@@ -43,7 +43,7 @@ CurrentUser = Annotated[
 
 @router.get(
     "",
-    response_model=list[ClientRead]
+    response_model=PaginatedClientRead,
 )
 def find_all(
         db: DbSession,
