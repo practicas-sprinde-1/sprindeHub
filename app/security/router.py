@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
-from app.security.dependencies import get_active_current_user, require_admin
+from app.security.dependencies import get_active_current_user, require_admin, require_modifier_role
 from app.security.models.log_model import Log, EntityType
 from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
@@ -44,6 +44,11 @@ CurrentUser = Annotated[
 AdminUser = Annotated[
     User,
     Depends(require_admin)
+]
+
+CurrentWriter = Annotated[
+    User,
+    Depends(require_modifier_role)
 ]
 
 
@@ -223,7 +228,7 @@ def revoke_client_access(
         db: DbSession,
         user_id: int,
         client_id: int,
-        _: AdminUser
+        _: CurrentWriter
 ) -> str:
     return user_client_service.revoke_client_access(db, user_id, client_id)
 
@@ -236,7 +241,7 @@ def revoke_client_access(
 def get_user_client_by_client_id(
         db: DbSession,
         client_id: int,
-        _: AdminUser,
+        _: CurrentWriter,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=20, ge=1, le=100),
 ) -> list[UserClient]:
@@ -251,7 +256,7 @@ def get_user_client_by_client_id(
 def get_user_client_by_user_id(
         db: DbSession,
         user_id: int,
-        _: AdminUser,
+        _: CurrentWriter,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=20, ge=1, le=100),
 ) -> list[UserClient]:
