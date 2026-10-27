@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 
 from app.database.session import sessionLocal
 
-#utiliza sessionLocal para cada petición .
+
+# utiliza sessionLocal para cada petición .
 
 def get_db() -> Generator[Session, None, None]:
     db = sessionLocal()

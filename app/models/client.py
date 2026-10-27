@@ -52,5 +52,3 @@ class Client(Base):
         back_populates="client",
         passive_deletes=True,
     )
-
-

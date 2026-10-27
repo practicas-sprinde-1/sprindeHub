@@ -86,7 +86,7 @@ def update_repository(
         db: Session,
         repository_id: int,
         data: RepositoryUpdate,
-        current_user:User
+        current_user: User
 ) -> Repository:
     repository = get_repository(db, repository_id)
 
@@ -120,7 +120,7 @@ def update_repository(
 def delete_repository(
         db: Session,
         repository_id: int,
-        current_user:User
+        current_user: User
 ) -> str:
     repository = get_repository(db, repository_id)
     name_project = repository.project.name
@@ -141,7 +141,3 @@ def delete_repository(
     except Exception:
         db.rollback()
         raise
-
-
-
-

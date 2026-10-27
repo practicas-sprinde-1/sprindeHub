@@ -1,5 +1,6 @@
-from app.models.note import Note
 from fastapi import status
+
+from app.models.note import Note
 
 
 def aux_create_note(

@@ -373,8 +373,7 @@ def test_update_unauthorized_project(
             "description": "string",
             "client_id": 1
         },
-    headers = user_headers
+        headers=user_headers
     )
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
-

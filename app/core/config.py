@@ -1,16 +1,17 @@
 # Esta clase es la configuracion principal de la bdd en la cual se extraen los datos del archivo .env
 import os
 from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from sqlalchemy import URL
 
 ENV_FILE_PATH = os.getenv("ENV_FILE", ".env")
+
 
 class Settings(BaseSettings):
     app_name: str = "Sprinde_App"
     environment: str = "development"
 
-    database_url:str
+    database_url: str
 
     jwt_secret_key: str
     jwt_algorithm: str
@@ -28,10 +29,10 @@ class Settings(BaseSettings):
     )
 
 
-
 # Instanciamos la configuración (aquí es donde se lee el .env y se valida todo)
 @lru_cache
-def get_settings()->Settings:
+def get_settings() -> Settings:
     return Settings()
+
 
 settings = get_settings()

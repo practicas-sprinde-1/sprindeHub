@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.security.models.user_client_model import UserClient
 from app.security.repositories import user_client_repo
 from app.security.schemas.userClient_schema import UserClientAccess
-from app.services import client_service
 from app.security.services import user_service
+from app.services import client_service
 
 
 def get_user_client(
@@ -27,7 +27,7 @@ def get_user_clients(
         offset: int,
         limit: int
 ) -> list[UserClient]:
-    user_clients = user_client_repo.find_all(db,offset, limit,)
+    user_clients = user_client_repo.find_all(db, offset, limit, )
 
     return user_clients
 

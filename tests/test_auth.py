@@ -178,7 +178,6 @@ def test_create_new_access_token(
     assert response_get.status_code == status.HTTP_200_OK
 
 
-
 def test_invalid_refresh_token(
         api_client,
 
@@ -317,7 +316,7 @@ def test_access_to_profile_by_desactivated_user(
     assert response_admin.status_code == status.HTTP_200_OK
 
     user_header = {
-        "Authorization":f"Bearer {access_token}"
+        "Authorization": f"Bearer {access_token}"
     }
 
     response_profile = api_client.get(
@@ -371,22 +370,15 @@ def test_access_to_refresh_by_desactivated_user(
     assert response_admin.status_code == status.HTTP_200_OK
 
     user_header = {
-        "Authorization":f"Bearer {access_token}"
+        "Authorization": f"Bearer {access_token}"
     }
-
-
 
     response_profile = api_client.post(
         "/api/v1/auth/refresh",
         json={
-            "refresh_token":refresh_token
+            "refresh_token": refresh_token
         },
         headers=user_header
     )
 
     assert response_profile.status_code == status.HTTP_403_FORBIDDEN
-
-
-
-
-

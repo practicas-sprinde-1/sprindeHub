@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 
+
 class LinkBase(BaseModel):
     url: str = Field(
         min_length=1,
@@ -13,8 +14,10 @@ class LinkBase(BaseModel):
         max_length=255,
     )
 
+
 class LinkCreate(LinkBase):
     pass
+
 
 class LinkUpdate(BaseModel):
     url: str | None = Field(
@@ -27,14 +30,13 @@ class LinkUpdate(BaseModel):
         default=None,
         gt=0
     )
-    title: str |None = Field(
+    title: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
     )
 
+
 class LinkRead(LinkBase):
-    id:int
+    id: int
     model_config = ConfigDict(from_attributes=True)
-
-

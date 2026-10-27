@@ -95,7 +95,7 @@ def update_domain(
         project_service.get_active_project(db, updates["project_id"])
 
     for field, value in updates.items():
-         setattr(domain, field, value)
+        setattr(domain, field, value)
 
     try:
         domain_repo.save(db, domain)
@@ -118,7 +118,7 @@ def update_domain(
 def delete_domain(
         db: Session,
         domain_id: int,
-        current_user:User
+        current_user: User
 ) -> str:
     domain = get_domain(db, domain_id)
     name_project = domain.project.name
@@ -137,6 +137,3 @@ def delete_domain(
     except Exception:
         db.rollback()
         raise
-
-
-

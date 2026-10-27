@@ -1,5 +1,6 @@
-from app.models.repository import Repository
 from fastapi import status
+
+from app.models.repository import Repository
 
 
 def aux_create_repository(

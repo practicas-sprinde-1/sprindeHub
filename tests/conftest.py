@@ -1,15 +1,13 @@
 import os
 from pathlib import Path
 
-#Desde contest.py busca la ruta raíz del proyecto y utiliza .env.test en vez de .env
+# Desde contest.py busca la ruta raíz del proyecto y utiliza .env.test en vez de .env
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 os.environ["ENV_FILE"] = str(PROJECT_ROOT / ".env.test")
 
 from app.security.models.user_model import User, RoleType
-from app.security.schemas.user_token_schemas import AccessToken, Token
+from app.security.schemas.user_token_schemas import Token
 from app.security.utils import hash_password
-
-
 
 from app.models.client import Client
 from app.models.project import Project
@@ -73,6 +71,7 @@ def api_client():
 
     app.dependency_overrides.clear()
 
+
 @pytest.fixture
 def created_client(api_client, admin_headers) -> Client:
     response = api_client.post(
@@ -117,7 +116,7 @@ def archived_client(api_client, admin_headers) -> Client:
 def created_project(
         api_client,
         created_client
-, admin_headers) -> Project:
+        , admin_headers) -> Project:
     response = api_client.post(
         "/api/v1/projects",
         json={
@@ -134,7 +133,7 @@ def created_project(
 def archived_project(
         api_client,
         created_client
-, admin_headers) -> Project:
+        , admin_headers) -> Project:
     response = api_client.post(
         "/api/v1/projects",
         json={
@@ -161,8 +160,7 @@ def archived_project(
 def restored_project(
         api_client,
         created_client
-, admin_headers,archived_project) -> Project:
-
+        , admin_headers, archived_project) -> Project:
     project = archived_project
 
     restored_response = api_client.patch(
@@ -173,6 +171,7 @@ def restored_project(
     assert restored_response.status_code == status.HTTP_200_OK
     assert restored_response.json()["is_active"] is True
     return restored_response.json()
+
 
 @pytest.fixture
 def admin_user():
@@ -195,6 +194,7 @@ def admin_user():
     finally:
         db.close()
 
+
 @pytest.fixture
 def created_guest(api_client) -> User:
     response = api_client.post(
@@ -211,7 +211,7 @@ def created_guest(api_client) -> User:
 
 
 @pytest.fixture
-def login_admin_token(api_client,admin_user) -> Token:
+def login_admin_token(api_client, admin_user) -> Token:
     response = api_client.post(
         "/api/v1/auth/login",
         json={
@@ -223,6 +223,7 @@ def login_admin_token(api_client,admin_user) -> Token:
     assert response.status_code == status.HTTP_200_OK
     return response.json()
 
+
 @pytest.fixture
 def admin_headers(login_admin_token) -> dict:
     return {
@@ -231,8 +232,9 @@ def admin_headers(login_admin_token) -> dict:
         )
     }
 
+
 @pytest.fixture
-def created_user_type_user() :
+def created_user_type_user():
     db = sessionLocal()
 
     user = User(
@@ -252,8 +254,9 @@ def created_user_type_user() :
     finally:
         db.close()
 
+
 @pytest.fixture
-def created_inactive_user() :
+def created_inactive_user():
     db = sessionLocal()
 
     user = User(
@@ -287,6 +290,7 @@ def login_user_token(api_client, created_user_type_user) -> dict:
     assert response.status_code == status.HTTP_200_OK
     return response.json()
 
+
 @pytest.fixture
 def user_headers(login_user_token) -> dict:
     return {
@@ -301,12 +305,13 @@ def user_with_client(api_client, created_client, admin_headers, created_user_typ
     response = api_client.post(
         f"/api/v1/admin/user-clients/users/{created_user_type_user.id}/clients",
         json={
-        "client_id": created_client["id"]
+            "client_id": created_client["id"]
         },
         headers=admin_headers
     )
     assert response.status_code == status.HTTP_201_CREATED
     return response.json()
+
 
 @pytest.fixture
 def guest_headers(api_client, created_guest):
@@ -329,10 +334,10 @@ def guest_headers(api_client, created_guest):
 
 @pytest.fixture
 def guest_with_client(
-    api_client,
-    admin_headers,
-    created_guest,
-    created_client,
+        api_client,
+        admin_headers,
+        created_guest,
+        created_client,
 ):
     response = api_client.post(
         f"/api/v1/admin/user-clients/users/{created_guest['id']}/clients",

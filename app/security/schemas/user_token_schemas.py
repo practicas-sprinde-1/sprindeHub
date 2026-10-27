@@ -5,18 +5,21 @@ from app.security.models.user_model import RoleType
 
 class Token(BaseModel):
     access_token: str
-    refresh_token:str
+    refresh_token: str
     token_type: str = "bearer"
+
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
 
 class AccessToken(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 class UserLogin(BaseModel):
-    email: EmailStr =Field(
+    email: EmailStr = Field(
         min_length=1,
         max_length=120
     )
@@ -45,6 +48,7 @@ class AdminUserCreate(UserRegister):
     role: RoleType = RoleType.GUEST
     is_active: bool = True
 
+
 class UserSelfUpdate(BaseModel):
     email: EmailStr | None = Field(
         default=None,
@@ -56,6 +60,7 @@ class UserSelfUpdate(BaseModel):
         min_length=1,
         max_length=120
     )
+
 
 class AdminUserUpdate(UserSelfUpdate):
     role: RoleType | None = Field(
@@ -72,7 +77,6 @@ class UserRead(BaseModel):
     username: str
     role: str
     model_config = ConfigDict(from_attributes=True)
-
 
 
 class PasswordChange(BaseModel):

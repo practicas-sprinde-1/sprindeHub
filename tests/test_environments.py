@@ -1,5 +1,6 @@
-from app.models.environment import Environment
 from fastapi import status
+
+from app.models.environment import Environment
 
 
 def aux_create_environment(

@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.models.client import Client
 from app.repositories import client_repo
-from app.schemas.client_schema import ClientCreate, ClientUpdate, PaginatedClientRead
+from app.schemas.client_schema import (
+    ClientCreate,
+    ClientLightRead,
+    ClientUpdate,
+    PaginatedClientRead,
+)
 from app.security.models.log_model import EntityType, ActionType
 from app.security.models.user_model import User
 from app.security.services import log_service
@@ -32,13 +37,28 @@ def get_clients(
 ) -> PaginatedClientRead:
     return client_repo.find_all(db, offset, limit)
 
+
 def get_clients_by_user(
         db: Session,
-        user_id:int,
-        offset:int,
-        limit:int
+        user_id: int,
+        offset: int,
+        limit: int
 ) -> PaginatedClientRead:
     return client_repo.find_all_by_user(db, user_id, offset, limit)
+
+
+def get_clients_light(
+        db: Session,
+) -> list[ClientLightRead]:
+    return client_repo.find_all_light(db)
+
+
+def get_clients_light_by_user(
+        db: Session,
+        user_id: int,
+) -> list[ClientLightRead]:
+    return client_repo.find_all_light_by_user(db, user_id)
+
 
 def get_archived_clients(
         db: Session,
@@ -57,11 +77,10 @@ def get_archived_clients_by_user(
     return client_repo.find_all_archived_by_user(db, user_id, offset, limit)
 
 
-
 def create_client(
         db: Session,
         data: ClientCreate,
-        current_user:User
+        current_user: User
 ) -> Client:
     client = Client(
         name=data.name,
@@ -69,7 +88,7 @@ def create_client(
         phone=data.phone
     )
     try:
-        client_repo.save(db,client)
+        client_repo.save(db, client)
 
         log_service.register_log(
             db=db,
@@ -91,7 +110,7 @@ def update_client(
         db: Session,
         client_id: int,
         data: ClientUpdate,
-        current_user:User
+        current_user: User
 ) -> Client:
     client = get_client(
         db, client_id
@@ -124,10 +143,10 @@ def update_client(
 def delete_client(
         db: Session,
         client_id: int,
-        current_user:User
+        current_user: User
 ) -> str:
     client = get_client(db, client_id)
-    client_name= client.name
+    client_name = client.name
     try:
         client_repo.delete(db, client)
 
@@ -145,10 +164,11 @@ def delete_client(
         db.rollback()
         raise
 
+
 def archive_client(
         db: Session,
         client_id: int,
-        current_user:User
+        current_user: User
 ) -> Client:
     client = get_client(db, client_id)
 
@@ -175,7 +195,7 @@ def archive_client(
 def restore_client(
         db: Session,
         client_id: int,
-        current_user:User
+        current_user: User
 ) -> Client:
     client = get_client(db, client_id)
 
@@ -198,6 +218,7 @@ def restore_client(
         db.rollback()
         raise
 
+
 def get_active_client(db: Session, client_id: int) -> Client:
     client = get_client(db, client_id)
 
@@ -209,9 +230,10 @@ def get_active_client(db: Session, client_id: int) -> Client:
 
     return client
 
+
 def create_client_in_project_service(
-    db: Session,
-    data: ClientCreate,
+        db: Session,
+        data: ClientCreate,
 ) -> Client:
     client = Client(
         name=data.name,

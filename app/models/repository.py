@@ -1,6 +1,5 @@
-from typing import TYPE_CHECKING
-
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SqlEnum, String, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
@@ -10,16 +9,18 @@ from app.database.base_class import Base
 if TYPE_CHECKING:
     from app.models.project import Project
 
+
 class RepositoryType(str, Enum):
     BACKEND = "backend"
-    FRONTEND= "frontend"
+    FRONTEND = "frontend"
     DEVOPS = "devops"
-    QA ="qa"
+    QA = "qa"
 
-class  Repository(Base):
+
+class Repository(Base):
     __tablename__ = "repositories"
 
-    id:Mapped[int] = mapped_column(
+    id: Mapped[int] = mapped_column(
         primary_key=True,
         autoincrement=True
     )
@@ -43,9 +44,3 @@ class  Repository(Base):
     project: Mapped["Project"] = relationship(
         back_populates="repositories",
     )
-
-
-
-
-
-

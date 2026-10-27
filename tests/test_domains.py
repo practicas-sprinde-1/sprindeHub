@@ -1,5 +1,6 @@
-from app.models.domain import Domain
 from fastapi import status
+
+from app.models.domain import Domain
 
 
 def aux_create_domain(

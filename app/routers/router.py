@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+
 from . import (
     client_router, project_router, environment_router,
     repository_router, domain_router, link_router,

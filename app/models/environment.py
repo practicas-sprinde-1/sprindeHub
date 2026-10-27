@@ -1,6 +1,5 @@
-from typing import TYPE_CHECKING
-
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SqlEnum, String, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
@@ -10,7 +9,8 @@ from app.database.base_class import Base
 if TYPE_CHECKING:
     from app.models.project import Project
 
-#Este Enum es Python/FastAPI
+
+# Este Enum es Python/FastAPI
 class EnvironmentType(str, Enum):
     DEVELOPMENT = "development"
     TEST = "test"
@@ -32,8 +32,8 @@ class Environment(Base):
     )
 
     type: Mapped[EnvironmentType] = mapped_column(
-        #Uso del alias para evitar colision de nombres.
-        #Refiriendo este Enum a SQL/BDD
+        # Uso del alias para evitar colision de nombres.
+        # Refiriendo este Enum a SQL/BDD
         SqlEnum(EnvironmentType, name="environment_type"),
         nullable=False,
     )

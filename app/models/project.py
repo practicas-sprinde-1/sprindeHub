@@ -6,7 +6,6 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.database.base_class import Base
 
 if TYPE_CHECKING:
-    from app.models.client import Client
     from app.models.environment import Environment
     from app.models.repository import Repository
     from app.models.link import Link
@@ -14,7 +13,6 @@ if TYPE_CHECKING:
     from app.models.command import Command
     from app.models.domain import Domain
     from app.models.note import Note
-
 
 
 class Project(Base):
@@ -36,7 +34,7 @@ class Project(Base):
         unique=True
     )
 
-    description: Mapped[str|None] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
@@ -74,11 +72,9 @@ class Project(Base):
         back_populates="project"
     )
 
-
     is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=True,
         server_default="1",
     )
-

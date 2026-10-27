@@ -12,56 +12,56 @@ from app.services import client_service
 
 
 def get_user(
-        db:Session,
-        user_id:int
-)-> User:
-    user = user_repo.find_by_id(db,user_id)
+        db: Session,
+        user_id: int
+) -> User:
+    user = user_repo.find_by_id(db, user_id)
     if user is None:
         raise HTTPException(
-            status_code= status.HTTP_404_NOT_FOUND,
-            detail= "Usuario no encontrado"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
         )
     return user
 
+
 def get_users_by_id_client(
-        db:Session,
-        client_id:int,
-        offset:int,
-        limit:int
+        db: Session,
+        client_id: int,
+        offset: int,
+        limit: int
 
-)-> list[User]:
-
-    client_service.get_client(db,client_id)
-    users = user_repo.find_by_client_id(db,client_id,offset,limit)
+) -> list[User]:
+    client_service.get_client(db, client_id)
+    users = user_repo.find_by_client_id(db, client_id, offset, limit)
     return users
 
+
 def get_users(
-        db:Session,
-        offset:int,
-        limit:int
-)->list[User]:
-    return user_repo.find_all(db,offset,limit)
+        db: Session,
+        offset: int,
+        limit: int
+) -> list[User]:
+    return user_repo.find_all(db, offset, limit)
 
 
 def get_inactive_users(
-        db:Session,
-        offset:int,
-        limit:int
-)->list[User]:
-    return user_repo.find_all_inactive(db,offset,limit)
+        db: Session,
+        offset: int,
+        limit: int
+) -> list[User]:
+    return user_repo.find_all_inactive(db, offset, limit)
 
 
 def create_user(
-        db:Session,
-        data:UserRegister
-)->User:
-
-    if user_repo.find_by_email(db,str(data.email)):
+        db: Session,
+        data: UserRegister
+) -> User:
+    if user_repo.find_by_email(db, str(data.email)):
         raise HTTPException(
-            status_code= status.HTTP_409_CONFLICT,
-            detail= "Email ya registrado."
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email ya registrado."
         )
-    if user_repo.find_by_username(db,data.username):
+    if user_repo.find_by_username(db, data.username):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="username ya registrado"
@@ -72,17 +72,18 @@ def create_user(
         username=data.username,
         password_hash=crypted_password
     )
-    return user_repo.save(db,user)
+    return user_repo.save(db, user)
+
 
 def login_user(
-        db:Session,
-        data:UserLogin
-)->Token:
-    user = user_repo.find_by_email(db,str(data.email))
+        db: Session,
+        data: UserLogin
+) -> Token:
+    user = user_repo.find_by_email(db, str(data.email))
 
     if user is None or not verify_password(
-        data.password,
-        user.password_hash
+            data.password,
+            user.password_hash
     ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -103,10 +104,11 @@ def login_user(
         refresh_token=refresh_token,
     )
 
+
 def refresh_user(
-        db:Session,
-        data:RefreshTokenRequest
-)->AccessToken:
+        db: Session,
+        data: RefreshTokenRequest
+) -> AccessToken:
     try:
         token_data = decode_access_token(data.refresh_token)
 
@@ -117,22 +119,22 @@ def refresh_user(
             )
         user_id = int(token_data["sub"])
 
-    #Captura errores que no son especificos de token
+    # Captura errores que no son especificos de token
     except HTTPException:
         raise
 
     except (
-        jwt.PyJWTError,
-        KeyError,
-        TypeError,
-        ValueError,
-        ):
-            raise HTTPException(
+            jwt.PyJWTError,
+            KeyError,
+            TypeError,
+            ValueError,
+    ):
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Refresh token inválido o expirado.",
         )
 
-    user = get_user(db,user_id)
+    user = get_user(db, user_id)
 
     if user.is_active is False:
         raise HTTPException(
@@ -148,14 +150,14 @@ def refresh_user(
 
 
 def restore_user(
-        db:Session,
-        user_id:int
-)->User:
-    user = get_user(db,user_id)
+        db: Session,
+        user_id: int
+) -> User:
+    user = get_user(db, user_id)
 
-    user.is_active=True
+    user.is_active = True
 
-    return user_repo.save(db,user)
+    return user_repo.save(db, user)
 
 
 def inactive_user(
@@ -168,11 +170,12 @@ def inactive_user(
 
     return user_repo.save(db, user)
 
+
 def get_active_user(
-        db:Session,
-        user_id:int
-)->User:
-    user = get_user(db,user_id)
+        db: Session,
+        user_id: int
+) -> User:
+    user = get_user(db, user_id)
 
     if not user.is_active:
         raise HTTPException(
@@ -181,12 +184,13 @@ def get_active_user(
         )
     return user
 
-def aux_check_data(
-        db:Session,
-        data: AdminUserUpdate | UserSelfUpdate,
-        user:User
 
-)->dict:
+def aux_check_data(
+        db: Session,
+        data: AdminUserUpdate | UserSelfUpdate,
+        user: User
+
+) -> dict:
     updates = data.model_dump(
         exclude_unset=True,
         exclude_none=True
@@ -213,28 +217,30 @@ def aux_check_data(
             )
     return updates
 
+
 def update_self_user(
-        db:Session,
-        user_id:int,
-        data:UserSelfUpdate
-)->User:
+        db: Session,
+        user_id: int,
+        data: UserSelfUpdate
+) -> User:
     user = get_user(db, user_id)
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="El usuario está inactivo",
         )
-    updates = aux_check_data(db,data,user)
-    for field,value in updates.items():
-        setattr(user,field,value)
+    updates = aux_check_data(db, data, user)
+    for field, value in updates.items():
+        setattr(user, field, value)
 
-    return user_repo.save(db,user)
+    return user_repo.save(db, user)
+
 
 def change_password(
-        db:Session,
-        user_id:int,
+        db: Session,
+        user_id: int,
         data: PasswordChange
-)->str:
+) -> str:
     user = get_user(db, user_id)
     if not user.is_active:
         raise HTTPException(
@@ -255,20 +261,20 @@ def change_password(
 
     user.password_hash = encrypted_new_pass
 
-    user_repo.save(db,user)
+    user_repo.save(db, user)
     return "Contraseña cambiada"
 
-def admin_create_user(
-        db:Session,
-        data:AdminUserCreate
-)->User:
 
-    if user_repo.find_by_email(db,str(data.email)):
+def admin_create_user(
+        db: Session,
+        data: AdminUserCreate
+) -> User:
+    if user_repo.find_by_email(db, str(data.email)):
         raise HTTPException(
-            status_code= status.HTTP_409_CONFLICT,
-            detail= "Email ya registrado."
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email ya registrado."
         )
-    if user_repo.find_by_username(db,data.username):
+    if user_repo.find_by_username(db, data.username):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="username ya registrado"
@@ -289,28 +295,24 @@ def admin_update_user(
         user_id: int,
         data: AdminUserUpdate
 ) -> User:
-
     user = get_user(db, user_id)
-    updates = aux_check_data(db,data,user)
+    updates = aux_check_data(db, data, user)
 
     for field, value in updates.items():
         setattr(user, field, value)
 
     return user_repo.save(db, user)
 
-def admin_delete_user(
-        db:Session,
-        user_id:int
-)->None:
 
-    user = user_repo.find_by_id(db,user_id);
+def admin_delete_user(
+        db: Session,
+        user_id: int
+) -> None:
+    user = user_repo.find_by_id(db, user_id);
 
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Usuario no encontrado"
         )
-    return user_repo.delete(db,user)
-
-
-
+    return user_repo.delete(db, user)

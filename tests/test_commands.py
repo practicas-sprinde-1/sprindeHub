@@ -1,5 +1,6 @@
-from app.models.command import Command
 from fastapi import status
+
+from app.models.command import Command
 
 
 def aux_create_command(

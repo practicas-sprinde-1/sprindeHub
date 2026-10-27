@@ -7,7 +7,7 @@ from app.database.dependency import get_db
 from app.models.client import Client
 from app.models.project import Project
 from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectDetailRead, ProjectUpdate, \
-    ProjectRead, ProjectFullCreate
+    ProjectRead, ProjectFullCreate, ProjectLightRead
 from app.security.dependencies import require_project_access, require_client_access, get_active_current_user, \
     require_modifier_role, check_client_access
 from app.security.models.user_model import RoleType, User
@@ -76,6 +76,20 @@ def find_all_archived(
 
 
 @router.get(
+    "/light",
+    response_model=list[ProjectLightRead],
+)
+def find_all_light(
+        db: DbSession,
+        current_user: CurrentUser,
+):
+    if current_user.role == RoleType.ADMIN:
+        return project_service.get_projects_light(db)
+
+    return project_service.get_projects_light_by_users(db, current_user.id)
+
+
+@router.get(
     "/{project_id}",
     response_model=ProjectDetailRead
 )
@@ -111,7 +125,8 @@ def create(
 ):
     check_client_access(db, current_user, data.client_id)
 
-    return project_service.create_project(db, data,current_user)
+    return project_service.create_project(db, data, current_user)
+
 
 @router.post(
     "/create-completed-project",
@@ -127,8 +142,7 @@ def create(
     if data.client_id is not None:
         check_client_access(db, current_user, data.client_id)
 
-    return project_service.create_full_project(db, data,current_user)
-
+    return project_service.create_full_project(db, data, current_user)
 
 
 @router.patch(
@@ -144,7 +158,7 @@ def update(
     if data.client_id is not None:
         check_client_access(db, current_user, data.client_id)
 
-    return project_service.update_project(db, current_project.id, data,current_user)
+    return project_service.update_project(db, current_project.id, data, current_user)
 
 
 @router.delete(
@@ -156,7 +170,7 @@ def delete(
         current_user: CurrentWriter,
         current_project: CurrentProject
 ) -> None:
-    project_service.delete_project(db, current_project.id,current_user)
+    project_service.delete_project(db, current_project.id, current_user)
 
 
 @router.patch(
@@ -168,7 +182,7 @@ def archive(
         current_user: CurrentWriter,
         current_project: CurrentProject
 ):
-    return project_service.archive_project(db, current_project.id,current_user)
+    return project_service.archive_project(db, current_project.id, current_user)
 
 
 @router.patch(
@@ -180,4 +194,4 @@ def restore(
         current_user: CurrentWriter,
         current_project: CurrentProject
 ):
-    return project_service.restore_project(db, current_project.id,current_user)
+    return project_service.restore_project(db, current_project.id, current_user)

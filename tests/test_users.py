@@ -249,10 +249,11 @@ def test_create_user_with_same_email(
             "role": "GUEST",
             "is_active": True
         },
-    headers = admin_headers
+        headers=admin_headers
     )
 
     assert response.status_code == status.HTTP_409_CONFLICT
+
 
 def test_create_user_with_same_username(
         api_client,
@@ -268,10 +269,11 @@ def test_create_user_with_same_username(
             "role": "GUEST",
             "is_active": True
         },
-    headers = admin_headers
+        headers=admin_headers
     )
 
     assert response.status_code == status.HTTP_409_CONFLICT
+
 
 def test_update_user_with_same_email(
         api_client,
@@ -306,6 +308,7 @@ def test_update_user_with_same_email(
 
     assert response.status_code == status.HTTP_409_CONFLICT
 
+
 def test_update_user_with_same_username(
         api_client,
         admin_headers,
@@ -334,9 +337,7 @@ def test_update_user_with_same_username(
             "role": "GUEST",
             "is_active": True
         },
-    headers = admin_headers
+        headers=admin_headers
     )
 
     assert response.status_code == status.HTTP_409_CONFLICT
-
-

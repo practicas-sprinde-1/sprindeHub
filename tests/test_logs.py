@@ -1,5 +1,6 @@
 from fastapi import status
 
+
 def get_client_logs(
         api_client,
         admin_headers,
@@ -12,6 +13,7 @@ def get_client_logs(
 
     assert response.status_code == status.HTTP_200_OK
     return response.json()
+
 
 def test_get_logs(
         api_client,
@@ -26,7 +28,8 @@ def test_get_logs(
 
     assert response.status_code == status.HTTP_200_OK
 
-    assert len(response.json())==1
+    assert len(response.json()) == 1
+
 
 def test_get_logs_without_login(
         api_client,
@@ -36,6 +39,7 @@ def test_get_logs_without_login(
     )
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
 
 def test_get_logs_without_admin(
         api_client,
@@ -71,7 +75,8 @@ def test_get_user_logs(
     )
 
     assert response.status_code == status.HTTP_200_OK
-    assert len(response.json())==1
+    assert len(response.json()) == 1
+
 
 def test_get_entity_logs(
         api_client,
@@ -85,14 +90,15 @@ def test_get_entity_logs(
 
     assert response.status_code == status.HTTP_200_OK
 
-    assert len(response.json())==1
-    assert response.json()[0]["affected_entity_id"]==created_client["id"]
+    assert len(response.json()) == 1
+    assert response.json()[0]["affected_entity_id"] == created_client["id"]
+
 
 def test_create_log(
-    api_client,
-    admin_headers,
-    admin_user,
-    created_client,
+        api_client,
+        admin_headers,
+        admin_user,
+        created_client,
 ):
     logs = get_client_logs(
         api_client,
@@ -108,11 +114,12 @@ def test_create_log(
     assert log["affected_entity"] == "CLIENT"
     assert log["affected_entity_id"] == created_client["id"]
 
+
 def test_update_log(
-    api_client,
-    admin_headers,
-    admin_user,
-    created_client,
+        api_client,
+        admin_headers,
+        admin_user,
+        created_client,
 ):
     response = api_client.patch(
         f"/api/v1/clients/{created_client['id']}/archive",
@@ -140,11 +147,12 @@ def test_update_log(
     assert log["affected_entity"] == "CLIENT"
     assert log["affected_entity_id"] == created_client["id"]
 
+
 def test_second_update_log(
-    api_client,
-    admin_headers,
-    admin_user,
-    created_client,
+        api_client,
+        admin_headers,
+        admin_user,
+        created_client,
 ):
     archive_response = api_client.patch(
         f"/api/v1/clients/{created_client['id']}/archive",
@@ -177,11 +185,12 @@ def test_second_update_log(
         assert log["affected_entity"] == "CLIENT"
         assert log["affected_entity_id"] == created_client["id"]
 
+
 def test_delete_log(
-    api_client,
-    admin_headers,
-    admin_user,
-    created_client,
+        api_client,
+        admin_headers,
+        admin_user,
+        created_client,
 ):
     client_id = created_client["id"]
 
@@ -209,4 +218,3 @@ def test_delete_log(
     assert log["user_id"] == admin_user.id
     assert log["affected_entity"] == "CLIENT"
     assert log["affected_entity_id"] == client_id
-

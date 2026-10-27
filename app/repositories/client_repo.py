@@ -2,7 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
-from app.schemas.client_schema import PaginatedClientRead
+from app.schemas.client_schema import ClientLightRead, PaginatedClientRead
 from app.security.models.user_client_model import UserClient
 
 
@@ -87,6 +87,57 @@ def find_by_id(
         client_id: int,
 ) -> Client | None:
     return db.get(Client, client_id)
+
+
+def find_all_light(
+        db: Session,
+) -> list[ClientLightRead]:
+    statement = (
+        select(Client)
+        .where(Client.is_active.is_(True))
+        .order_by(Client.id)
+    )
+
+    clients = db.scalars(statement).all()
+
+    clients_light = []
+
+    for client in clients:
+        client_light = ClientLightRead(
+            id=client.id,
+            name=client.name,
+        )
+        clients_light.append(client_light)
+
+    return clients_light
+
+
+def find_all_light_by_user(
+        db: Session,
+        user_id: int,
+) -> list[ClientLightRead]:
+    statement = (
+        select(Client.id, Client.name)
+        .join(UserClient, UserClient.client_id == Client.id)
+        .where(
+            Client.is_active.is_(True),
+            UserClient.user_id == user_id,
+        )
+        .order_by(Client.id)
+    )
+
+    clients = db.execute(statement).all()
+
+    clients_light = []
+
+    for client in clients:
+        client_light = ClientLightRead(
+            id=client.id,
+            name=client.name,
+        )
+        clients_light.append(client_light)
+
+    return clients_light
 
 
 def save(

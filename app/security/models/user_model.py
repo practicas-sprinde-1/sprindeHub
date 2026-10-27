@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from pydantic import EmailStr
 from sqlalchemy import Enum as SqlEnum, Boolean, DateTime, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,14 +11,16 @@ if TYPE_CHECKING:
     from app.security.models.user_client_model import UserClient
 
 
-#Elimina la etiqueta de la zona horaria con usando el .replace
+# Elimina la etiqueta de la zona horaria con usando el .replace
 def utc_now_db() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 class RoleType(str, Enum):
     ADMIN = "ADMIN"
     USER = "USER"
-    GUEST ="GUEST"
+    GUEST = "GUEST"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -47,7 +48,7 @@ class User(Base):
     )
 
     role: Mapped[RoleType] = mapped_column(
-        SqlEnum(RoleType,name="role_type"),
+        SqlEnum(RoleType, name="role_type"),
         nullable=False,
         default="GUEST",
     )
@@ -71,4 +72,4 @@ class User(Base):
         nullable=False,
     )
 
-    user_clients:Mapped[list["UserClient"]] = relationship(back_populates="user")
+    user_clients: Mapped[list["UserClient"]] = relationship(back_populates="user")

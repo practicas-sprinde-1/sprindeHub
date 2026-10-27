@@ -22,9 +22,10 @@ def find_all(
         db.scalars(statement).all()
     )
 
+
 def find_all_by_users(
         db: Session,
-        user_id:int,
+        user_id: int,
         offset: int = 0,
         limit: int = 20,
 
@@ -33,7 +34,7 @@ def find_all_by_users(
         select(Note)
         .join(Project, Project.id == Note.project_id)
         .join(UserClient, UserClient.client_id == Project.client_id)
-        .where(UserClient.user_id==user_id,Project.is_active.is_(True))
+        .where(UserClient.user_id == user_id, Project.is_active.is_(True))
         .offset(offset)
         .limit(limit)
         .order_by(Note.id)
@@ -49,11 +50,12 @@ def find_by_id(
 ) -> Note | None:
     return db.get(Note, note_id)
 
+
 def find_by_project_id(
         db: Session,
         project_id: int,
-        offset:int=0,
-        limit:int=20
+        offset: int = 0,
+        limit: int = 20
 ) -> list[Note]:
     statement = (
         select(Note)
@@ -65,6 +67,7 @@ def find_by_project_id(
 
     return list(db.scalars(statement).all())
 
+
 def save(
         db: Session,
         note: Note,
@@ -73,6 +76,7 @@ def save(
     db.add(note)
     db.flush()
     return note
+
 
 def delete(
         db: Session,

@@ -101,8 +101,7 @@ def save(
 
 def delete(
         db: Session,
-       user: User
+        user: User
 ) -> None:
     db.delete(user)
     db.commit()
-

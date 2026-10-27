@@ -10,7 +10,7 @@ from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
 from app.security.schemas.log_schema import LogRead
 from app.security.schemas.userClient_schema import UserClientRead, UserClientAccess
-from app.security.schemas.user_token_schemas import UserRegister, UserRead, UserLogin, UserSelfUpdate, PasswordChange, \
+from app.security.schemas.user_token_schemas import UserRead, UserLogin, UserSelfUpdate, PasswordChange, \
     AdminUserCreate, AdminUserUpdate, Token, RefreshTokenRequest, AccessToken
 from app.security.services import user_service, user_client_service, log_service
 
@@ -51,7 +51,6 @@ CurrentWriter = Annotated[
     Depends(require_modifier_role)
 ]
 
-
 """@router_auth.post(
     "/register",
     response_model=UserRead,
@@ -64,6 +63,7 @@ def register(
 ):
     return user_service.create_user(db, data)
 """
+
 
 @router_auth.post(
     "/login",
@@ -151,16 +151,17 @@ def admin_create_user(
 ):
     return user_service.admin_create_user(db, data)
 
+
 @router_admin.delete(
     "/users/{user_id}",
     status_code=status.HTTP_200_OK
 )
 def admin_delete_user(
-        db:DbSession,
-        _:AdminUser,
-        user_id:int
+        db: DbSession,
+        _: AdminUser,
+        user_id: int
 ):
-    return user_service.admin_delete_user(db,user_id)
+    return user_service.admin_delete_user(db, user_id)
 
 
 @router_admin.patch(

@@ -2,16 +2,22 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
-from app.models.environment import Environment
-from app.models.repository import Repository
-from app.models.service import Service
-from app.models.domain import Domain
 from app.models.command import Command
+from app.models.domain import Domain
+from app.models.environment import Environment
 from app.models.link import Link
 from app.models.note import Note
 from app.models.project import Project
+from app.models.repository import Repository
+from app.models.service import Service
 from app.repositories import project_repo
-from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectUpdate, ProjectFullCreate
+from app.schemas.project_schema import (
+    PaginatedProjectTableRead,
+    ProjectCreate,
+    ProjectFullCreate,
+    ProjectLightRead,
+    ProjectUpdate,
+)
 from app.security.models.log_model import ActionType, EntityType
 from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
@@ -58,6 +64,19 @@ def get_projects_by_users(
         limit: int
 ) -> PaginatedProjectTableRead:
     return project_repo.find_all_by_users(db, user_id, offset, limit)
+
+
+def get_projects_light(
+        db: Session,
+) -> list[ProjectLightRead]:
+    return project_repo.find_all_light(db)
+
+
+def get_projects_light_by_users(
+        db: Session,
+        user_id: int,
+) -> list[ProjectLightRead]:
+    return project_repo.find_all_light_by_users(db, user_id)
 
 
 def get_archived_projects(
@@ -148,7 +167,7 @@ def update_project(
 def delete_project(
         db: Session,
         project_id: int,
-        current_user:User
+        current_user: User
 ) -> str:
     project = get_project(db, project_id)
 
@@ -196,7 +215,7 @@ def delete_project(
 def restore_project(
         db: Session,
         project_id: int,
-        current_user:User
+        current_user: User
 ) -> Project:
     project = get_project(db, project_id)
 
@@ -220,11 +239,10 @@ def restore_project(
         raise
 
 
-
 def archive_project(
         db: Session,
         project_id: int,
-        current_user:User
+        current_user: User
 ) -> Project:
     project = get_project(db, project_id)
 
@@ -261,10 +279,11 @@ def get_active_project(
         )
     return project
 
+
 def create_full_project(
-    db: Session,
-    data: ProjectFullCreate,
-    current_user: User,
+        db: Session,
+        data: ProjectFullCreate,
+        current_user: User,
 ) -> Project:
     try:
         client_id = data.client_id
@@ -305,7 +324,6 @@ def create_full_project(
 
         db.add(project)
         db.flush()
-
 
         for item in data.environments:
             environment = Environment(

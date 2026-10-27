@@ -3,13 +3,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.environment import EnvironmentType
 from app.models.repository import RepositoryType
 from app.schemas.client_schema import ClientRead, ClientCreate
-from app.schemas.command_schema import CommandRead, CommandCreate
-from app.schemas.environment_schema import EnvironmentRead, EnvironmentCreate
-from app.schemas.domain_schema import DomainRead, DomainCreate
-from app.schemas.link_schema import LinkRead, LinkCreate
-from app.schemas.note_schema import NoteRead, NoteCreate
-from app.schemas.repository_schema import RepositoryRead, RepositoryCreate
-from app.schemas.service_schema import ServiceRead, ServiceCreate
+from app.schemas.command_schema import CommandRead
+from app.schemas.domain_schema import DomainRead
+from app.schemas.environment_schema import EnvironmentRead
+from app.schemas.link_schema import LinkRead
+from app.schemas.note_schema import NoteRead
+from app.schemas.repository_schema import RepositoryRead
+from app.schemas.service_schema import ServiceRead
 
 
 class ProjectBase(BaseModel):
@@ -18,15 +18,17 @@ class ProjectBase(BaseModel):
         max_length=120,
     )
 
-    description:str | None= Field(
+    description: str | None = Field(
         default=None,
         max_length=500
     )
 
     client_id: int | None = Field(default=None, gt=0)
 
+
 class ProjectCreate(ProjectBase):
-   pass
+    pass
+
 
 class ProjectUpdate(BaseModel):
     name: str | None = Field(
@@ -39,18 +41,27 @@ class ProjectUpdate(BaseModel):
         default=None,
         max_length=500
     )
-    client_id: int |None= Field(
+    client_id: int | None = Field(
         default=None,
         gt=0
     )
 
+
 class ProjectRead(ProjectBase):
     id: int
-    is_active:bool
+    is_active: bool
 
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class ProjectLightRead(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ClientTableRead(BaseModel):
     id: int
@@ -90,7 +101,6 @@ class DomainTableRead(BaseModel):
 
 
 class ProjectTableRead(BaseModel):
-
     id: int
     name: str
     client: ClientTableRead | None
@@ -106,7 +116,6 @@ class ProjectTableRead(BaseModel):
 
 
 class PaginatedProjectTableRead(BaseModel):
-
     items: list[ProjectTableRead]
     total: int = Field(ge=0)
     offset: int = Field(ge=0)
@@ -114,7 +123,6 @@ class PaginatedProjectTableRead(BaseModel):
 
 
 class ProjectDetailRead(ProjectRead):
-
     client: ClientRead | None
     environments: list[EnvironmentRead]
     repositories: list[RepositoryRead]
@@ -195,8 +203,8 @@ class NoteInProjectCreate(BaseModel):
 class ProjectFullCreate(ProjectBase):
     is_active: bool = True
 
-    client_id: int |None = None
-    client:ClientCreate |None = None
+    client_id: int | None = None
+    client: ClientCreate | None = None
 
     environments: list[EnvironmentInProjectCreate] = Field(default_factory=list)
     repositories: list[RepositoryInProjectCreate] = Field(default_factory=list)
@@ -213,5 +221,3 @@ class ProjectFullCreate(ProjectBase):
                 "Indica un cliente existente o los datos de un cliente nuevo, no ambos."
             )
         return self
-
-

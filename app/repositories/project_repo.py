@@ -5,7 +5,11 @@ from app.models.command import Command
 from app.models.link import Link
 from app.models.note import Note
 from app.models.project import Project
-from app.schemas.project_schema import PaginatedProjectTableRead, ProjectTableRead
+from app.schemas.project_schema import (
+    PaginatedProjectTableRead,
+    ProjectLightRead,
+    ProjectTableRead,
+)
 from app.security.models.user_client_model import UserClient
 
 
@@ -344,6 +348,52 @@ def find_by_id(
         .where(Project.id == project_id)
     )
     return db.scalar(statement)
+
+
+def find_all_light(
+        db: Session,
+) -> list[ProjectLightRead]:
+    statement = select(Project.id, Project.name).where(Project.is_active.is_(True))
+    projects = db.execute(statement.order_by(Project.id)).all()
+
+    projects_light = []
+
+    for project in projects:
+        project_light = ProjectLightRead(
+            id=project.id,
+            name=project.name
+        )
+        projects_light.append(project_light)
+
+    return projects_light
+
+
+def find_all_light_by_users(
+        db: Session,
+        user_id: int,
+) -> list[ProjectLightRead]:
+    statement = (
+        select(Project.id, Project.name)
+        .join(UserClient, UserClient.client_id == Project.client_id)
+        .where(
+            Project.is_active.is_(True),
+            UserClient.user_id == user_id,
+        )
+        .order_by(Project.id)
+    )
+
+    projects = db.execute(statement).all()
+
+    projects_light = []
+
+    for project in projects:
+        project_light = ProjectLightRead(
+            id=project.id,
+            name=project.name
+        )
+        projects_light.append(project_light)
+
+    return projects_light
 
 
 def find_by_client_id(

@@ -151,7 +151,7 @@ def test_get_client_by_id_success(api_client, user_headers, admin_headers):
 def test_get_client_by_id_not_found(api_client, admin_headers):
     non_exist_client: int = 9999
 
-    response = api_client.get(f"/api/v1/clients/{non_exist_client}",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients/{non_exist_client}", headers=admin_headers)
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -159,13 +159,13 @@ def test_get_client_by_id_not_found(api_client, admin_headers):
 def test_get_client_by_id_rejects_non_integer_id(api_client, admin_headers):
     invalid_data: str = "abc"
 
-    response = api_client.get(f"/api/v1/clients/{invalid_data}",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients/{invalid_data}", headers=admin_headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_clients_returns_empty_page(api_client, admin_headers):
-    response = api_client.get(f"/api/v1/clients/",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients/", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -181,8 +181,8 @@ def test_list_archived_clients_returns_total_and_respects_pagination(
         api_client, admin_headers):
     client_ids = []
     for name, cif, phone in (
-        ("Primer cliente archivado", "B12345670", "600123120"),
-        ("Segundo cliente archivado", "B12345671", "600123121"),
+            ("Primer cliente archivado", "B12345670", "600123120"),
+            ("Segundo cliente archivado", "B12345671", "600123121"),
     ):
         create_response = api_client.post(
             "/api/v1/clients",
@@ -227,7 +227,7 @@ def test_list_clients_returns_clients(api_client, admin_headers):
 
     created_client = create_response.json()
 
-    response = api_client.get(f"/api/v1/clients/",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients/", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
 
@@ -246,33 +246,54 @@ def test_list_clients_returns_clients(api_client, admin_headers):
 
 
 def test_list_clients_respects_limit(api_client, admin_headers):
-    response = api_client.get(f"/api/v1/clients?limit=20",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients?limit=20", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"] == []
 
 
+def test_list_light_clients_returns_only_id_and_name(api_client, admin_headers):
+    create_response = api_client.post(
+        "/api/v1/clients",
+        json={
+            "name": "Cliente ligero",
+            "cif": "B11111111",
+            "phone": "600111111",
+        },
+        headers=admin_headers,
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+
+    response = api_client.get("/api/v1/clients/light", headers=admin_headers)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json() == [{
+        "id": create_response.json()["id"],
+        "name": "Cliente ligero",
+    }]
+
+
 def test_list_clients_respects_offset(api_client, admin_headers):
-    response = api_client.get(f"/api/v1/clients?offset=1",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients?offset=1", headers=admin_headers)
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["items"] == []
 
 
 def test_list_clients_rejects_negative_offset(api_client, admin_headers):
-    response = api_client.get(f"/api/v1/clients?offset=-1",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients?offset=-1", headers=admin_headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_clients_rejects_zero_limit(api_client, admin_headers):
-    response = api_client.get(f"/api/v1/clients?limit=0",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients?limit=0", headers=admin_headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 
 def test_list_clients_rejects_greater_limit(api_client, admin_headers):
-    response = api_client.get(f"/api/v1/clients?limit=101",headers=admin_headers)
+    response = api_client.get(f"/api/v1/clients?limit=101", headers=admin_headers)
 
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 

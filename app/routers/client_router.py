@@ -5,7 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
 from app.models.client import Client
-from app.schemas.client_schema import ClientRead, ClientCreate, ClientUpdate, PaginatedClientRead
+from app.schemas.client_schema import (
+    ClientCreate,
+    ClientLightRead,
+    ClientRead,
+    ClientUpdate,
+    PaginatedClientRead,
+)
 from app.security.dependencies import require_client_access, require_modifier_role, require_admin, \
     get_active_current_user
 from app.security.models.user_model import User, RoleType
@@ -22,7 +28,7 @@ DbSession = Annotated[
 ]
 
 ClientWithAccess = Annotated[
-    Client,Depends(require_client_access)
+    Client, Depends(require_client_access)
 ]
 
 CurrentWriter = Annotated[
@@ -39,22 +45,20 @@ CurrentUser = Annotated[
 ]
 
 
-
-
 @router.get(
     "",
     response_model=PaginatedClientRead,
 )
 def find_all(
         db: DbSession,
-        user:CurrentUser,
+        user: CurrentUser,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=20, ge=1, le=100),
 ):
     if user.role == RoleType.ADMIN:
         return client_service.get_clients(db, offset, limit)
 
-    return client_service.get_clients_by_user(db,user.id,offset, limit)
+    return client_service.get_clients_by_user(db, user.id, offset, limit)
 
 
 @router.get(
@@ -74,11 +78,25 @@ def find_all_archived(
 
 
 @router.get(
+    "/light",
+    response_model=list[ClientLightRead],
+)
+def find_all_light(
+        db: DbSession,
+        user: CurrentUser,
+):
+    if user.role == RoleType.ADMIN:
+        return client_service.get_clients_light(db)
+
+    return client_service.get_clients_light_by_user(db, user.id)
+
+
+@router.get(
     "/{client_id}",
     response_model=ClientRead
 )
 def find_by_id(
-        client:ClientWithAccess
+        client: ClientWithAccess
 ):
     return client
 
@@ -91,9 +109,9 @@ def find_by_id(
 def create(
         db: DbSession,
         data: ClientCreate,
-        current_user:CurrentAdmin,
+        current_user: CurrentAdmin,
 ):
-    return client_service.create_client(db, data,current_user)
+    return client_service.create_client(db, data, current_user)
 
 
 @router.patch(
@@ -103,10 +121,10 @@ def create(
 def update(
         db: DbSession,
         data: ClientUpdate,
-        current_user:CurrentWriter,
-        client:ClientWithAccess,
+        current_user: CurrentWriter,
+        client: ClientWithAccess,
 ):
-    return client_service.update_client(db, client.id, data,current_user)
+    return client_service.update_client(db, client.id, data, current_user)
 
 
 @router.delete(
@@ -118,7 +136,7 @@ def delete(
         current_user: CurrentWriter,
         client: ClientWithAccess,
 ) -> str:
-   return client_service.delete_client(db, client.id,current_user)
+    return client_service.delete_client(db, client.id, current_user)
 
 
 @router.patch(
@@ -130,8 +148,7 @@ def archive(
         current_user: CurrentWriter,
         client: ClientWithAccess,
 ):
-    return client_service.archive_client(db, client.id,current_user)
-
+    return client_service.archive_client(db, client.id, current_user)
 
 
 @router.patch(
@@ -143,4 +160,4 @@ def restore(
         current_user: CurrentWriter,
         client: ClientWithAccess,
 ):
-    return client_service.restore_client(db, client.id,current_user)
+    return client_service.restore_client(db, client.id, current_user)
