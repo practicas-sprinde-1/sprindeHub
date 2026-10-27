@@ -49,12 +49,15 @@ def find_all(
         db: DbSession,
         current_user: CurrentUser,
         offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100)
+        limit: int = Query(default=20, ge=1, le=100),
+        search: str | None = Query(default=None, min_length=1, max_length=120),
 ):
     if current_user.role == RoleType.ADMIN:
-        return project_service.get_projects(db, offset, limit)
+        return project_service.get_projects(db, offset, limit, search)
 
-    return project_service.get_projects_by_users(db, current_user.id, offset, limit)
+    return project_service.get_projects_by_users(
+        db, current_user.id, offset, limit, search
+    )
 
 
 @router.get(
@@ -65,13 +68,14 @@ def find_all_archived(
         db: DbSession,
         current_user: CurrentUser,
         offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100)
+        limit: int = Query(default=20, ge=1, le=100),
+        search: str | None = Query(default=None, min_length=1, max_length=120),
 ):
     if current_user.role == RoleType.ADMIN:
-        return project_service.get_archived_projects(db, offset, limit)
+        return project_service.get_archived_projects(db, offset, limit, search)
 
     return project_service.get_archived_projects_by_users(
-        db, current_user.id, offset, limit
+        db, current_user.id, offset, limit, search
     )
 
 

@@ -1,7 +1,8 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models.command import Command
+from app.models.client import Client
 from app.models.link import Link
 from app.models.note import Note
 from app.models.project import Project
@@ -13,11 +14,22 @@ from app.schemas.project_schema import (
 from app.security.models.user_client_model import UserClient
 
 
+def _project_search_filter(search: str | None):
+    if search is None or not search.strip():
+        return None
+
+    pattern = f"%{search.strip()}%"
+    return or_(
+        Project.name.ilike(pattern),
+        Client.name.ilike(pattern),
+    )
+
+
 def find_all(
         db: Session,
         offset: int = 0,
         limit: int = 20,
-
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
     commands_count_query = (
         select(func.count(Command.id))
@@ -42,6 +54,13 @@ def find_all(
         select(func.count(Project.id))
         .where(Project.is_active.is_(True))
     )
+    search_filter = _project_search_filter(search)
+    if search_filter is not None:
+        total_statement = (
+            total_statement
+            .outerjoin(Client, Client.id == Project.client_id)
+            .where(search_filter)
+        )
     total = db.scalar(total_statement) or 0
 
     statement = (
@@ -66,6 +85,10 @@ def find_all(
         .limit(limit)
         .order_by(Project.id)
     )
+    if search_filter is not None:
+        statement = statement.outerjoin(
+            Client, Client.id == Project.client_id
+        ).where(search_filter)
 
     rows = db.execute(statement).all()
     projects: list[ProjectTableRead] = []
@@ -99,7 +122,7 @@ def find_all_by_users(
         user_id: int,
         offset: int = 0,
         limit: int = 20,
-
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
     commands_count_query = (
         select(func.count(Command.id))
@@ -125,6 +148,13 @@ def find_all_by_users(
         .join(UserClient, UserClient.client_id == Project.client_id)
         .where(UserClient.user_id == user_id, Project.is_active.is_(True))
     )
+    search_filter = _project_search_filter(search)
+    if search_filter is not None:
+        total_statement = (
+            total_statement
+            .outerjoin(Client, Client.id == Project.client_id)
+            .where(search_filter)
+        )
     total = db.scalar(total_statement) or 0
 
     statement = (
@@ -147,6 +177,10 @@ def find_all_by_users(
         .limit(limit)
         .order_by(Project.id)
     )
+    if search_filter is not None:
+        statement = statement.outerjoin(
+            Client, Client.id == Project.client_id
+        ).where(search_filter)
 
     rows = db.execute(statement).all()
     projects: list[ProjectTableRead] = []
@@ -179,7 +213,7 @@ def find_all_archived(
         db: Session,
         offset: int = 0,
         limit: int = 20,
-
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
     commands_count_query = (
         select(func.count(Command.id))
@@ -204,6 +238,13 @@ def find_all_archived(
         select(func.count(Project.id))
         .where(Project.is_active.is_(False))
     )
+    search_filter = _project_search_filter(search)
+    if search_filter is not None:
+        total_statement = (
+            total_statement
+            .outerjoin(Client, Client.id == Project.client_id)
+            .where(search_filter)
+        )
     total = db.scalar(total_statement) or 0
 
     statement = (
@@ -225,6 +266,10 @@ def find_all_archived(
         .limit(limit)
         .order_by(Project.id)
     )
+    if search_filter is not None:
+        statement = statement.outerjoin(
+            Client, Client.id == Project.client_id
+        ).where(search_filter)
 
     rows = db.execute(statement).all()
     projects = [
@@ -256,6 +301,7 @@ def find_all_archived_by_users(
         user_id: int,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
     commands_count_query = (
         select(func.count(Command.id))
@@ -281,6 +327,13 @@ def find_all_archived_by_users(
         .join(UserClient, UserClient.client_id == Project.client_id)
         .where(UserClient.user_id == user_id, Project.is_active.is_(False))
     )
+    search_filter = _project_search_filter(search)
+    if search_filter is not None:
+        total_statement = (
+            total_statement
+            .outerjoin(Client, Client.id == Project.client_id)
+            .where(search_filter)
+        )
     total = db.scalar(total_statement) or 0
 
     statement = (
@@ -303,6 +356,10 @@ def find_all_archived_by_users(
         .limit(limit)
         .order_by(Project.id)
     )
+    if search_filter is not None:
+        statement = statement.outerjoin(
+            Client, Client.id == Project.client_id
+        ).where(search_filter)
 
     rows = db.execute(statement).all()
     projects = [

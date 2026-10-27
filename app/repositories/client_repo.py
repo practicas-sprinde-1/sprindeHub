@@ -1,4 +1,4 @@
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
@@ -10,8 +10,11 @@ def find_all(
         db: Session,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 ) -> PaginatedClientRead:
-    return _find_all(db, is_active=True, offset=offset, limit=limit)
+    return _find_all(
+        db, is_active=True, offset=offset, limit=limit, search=search
+    )
 
 
 def find_all_by_user(
@@ -19,9 +22,11 @@ def find_all_by_user(
         user_id: int,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 ) -> PaginatedClientRead:
     return _find_all(
-        db, is_active=True, offset=offset, limit=limit, user_id=user_id
+        db, is_active=True, offset=offset, limit=limit, user_id=user_id,
+        search=search,
     )
 
 
@@ -29,8 +34,11 @@ def find_all_archived(
         db: Session,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 ) -> PaginatedClientRead:
-    return _find_all(db, is_active=False, offset=offset, limit=limit)
+    return _find_all(
+        db, is_active=False, offset=offset, limit=limit, search=search
+    )
 
 
 def find_all_archived_by_user(
@@ -38,9 +46,11 @@ def find_all_archived_by_user(
         user_id: int,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 ) -> PaginatedClientRead:
     return _find_all(
-        db, is_active=False, offset=offset, limit=limit, user_id=user_id
+        db, is_active=False, offset=offset, limit=limit, user_id=user_id,
+        search=search,
     )
 
 
@@ -50,6 +60,7 @@ def _find_all(
         offset: int,
         limit: int,
         user_id: int | None = None,
+        search: str | None = None,
 ) -> PaginatedClientRead:
     total_statement = (
         select(func.count(Client.id))
@@ -65,6 +76,16 @@ def _find_all(
         statement = statement.join(
             UserClient, UserClient.client_id == Client.id
         ).where(UserClient.user_id == user_id)
+
+    if search is not None:
+        pattern = f"%{search.strip()}%"
+        search_filter = or_(
+            Client.name.ilike(pattern),
+            Client.cif.ilike(pattern),
+            Client.phone.ilike(pattern),
+        )
+        total_statement = total_statement.where(search_filter)
+        statement = statement.where(search_filter)
 
     total = db.scalar(total_statement) or 0
     statement = (

@@ -33,18 +33,20 @@ def get_client(
 def get_clients(
         db: Session,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> PaginatedClientRead:
-    return client_repo.find_all(db, offset, limit)
+    return client_repo.find_all(db, offset, limit, search)
 
 
 def get_clients_by_user(
         db: Session,
         user_id: int,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> PaginatedClientRead:
-    return client_repo.find_all_by_user(db, user_id, offset, limit)
+    return client_repo.find_all_by_user(db, user_id, offset, limit, search)
 
 
 def get_clients_light(
@@ -63,9 +65,10 @@ def get_clients_light_by_user(
 def get_archived_clients(
         db: Session,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> PaginatedClientRead:
-    return client_repo.find_all_archived(db, offset, limit)
+    return client_repo.find_all_archived(db, offset, limit, search)
 
 
 def get_archived_clients_by_user(
@@ -73,8 +76,11 @@ def get_archived_clients_by_user(
         user_id: int,
         offset: int,
         limit: int,
+        search: str | None = None,
 ) -> PaginatedClientRead:
-    return client_repo.find_all_archived_by_user(db, user_id, offset, limit)
+    return client_repo.find_all_archived_by_user(
+        db, user_id, offset, limit, search
+    )
 
 
 def create_client(

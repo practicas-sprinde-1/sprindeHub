@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from sqlalchemy import Enum as SqlEnum, DateTime, ForeignKey
+from sqlalchemy import Enum as SqlEnum, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base_class import Base
@@ -51,6 +51,11 @@ class Log(Base):
     )
     affected_entity_id: Mapped[int] = mapped_column(
         nullable=False,
+    )
+    search_text: Mapped[str] = mapped_column(
+        String(1024),
+        nullable=False,
+        server_default="",
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime,

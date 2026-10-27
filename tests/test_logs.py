@@ -31,6 +31,65 @@ def test_get_logs(
     assert len(response.json()) == 1
 
 
+def test_get_logs_searches_by_user_action_entity_type_name_or_date(
+        api_client,
+        admin_headers,
+        created_client,
+):
+    logs_response = api_client.get("/api/v1/admin/logs", headers=admin_headers)
+    assert logs_response.status_code == status.HTTP_200_OK
+    log = logs_response.json()[0]
+    creation_date = log["created_at"][:10]
+
+    for search in (
+            "admin",
+            "create",
+            "client",
+            created_client["name"],
+            creation_date,
+    ):
+        response = api_client.get(
+            "/api/v1/admin/logs",
+            params={"search": search},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [item["id"] for item in response.json()] == [log["id"]]
+
+
+def test_deleted_entity_log_keeps_its_search_text(
+        api_client,
+        admin_headers,
+):
+    create_response = api_client.post(
+        "/api/v1/clients",
+        json={
+            "name": "Cliente historico",
+            "cif": "H12345678",
+            "phone": "600123456",
+        },
+        headers=admin_headers,
+    )
+    assert create_response.status_code == status.HTTP_201_CREATED
+    client_id = create_response.json()["id"]
+
+    delete_response = api_client.delete(
+        f"/api/v1/clients/{client_id}",
+        headers=admin_headers,
+    )
+    assert delete_response.status_code == status.HTTP_200_OK
+
+    response = api_client.get(
+        "/api/v1/admin/logs",
+        params={"search": "cliente historico"},
+        headers=admin_headers,
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert {log["action"] for log in response.json()} == {"CREATE", "DELETE"}
+
+
 def test_get_logs_without_login(
         api_client,
 ):

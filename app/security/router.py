@@ -273,9 +273,10 @@ def get_logs(
         db: DbSession,
         _: AdminUser,
         offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100)
+        limit: int = Query(default=20, ge=1, le=100),
+        search: str | None = Query(default=None, min_length=1, max_length=120),
 ) -> list[Log]:
-    return log_service.get_logs(db, offset, limit)
+    return log_service.get_logs(db, offset, limit, search)
 
 
 @router_admin.get(

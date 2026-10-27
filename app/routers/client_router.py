@@ -54,11 +54,12 @@ def find_all(
         user: CurrentUser,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=20, ge=1, le=100),
+        search: str | None = Query(default=None, min_length=1, max_length=120),
 ):
     if user.role == RoleType.ADMIN:
-        return client_service.get_clients(db, offset, limit)
+        return client_service.get_clients(db, offset, limit, search)
 
-    return client_service.get_clients_by_user(db, user.id, offset, limit)
+    return client_service.get_clients_by_user(db, user.id, offset, limit, search)
 
 
 @router.get(
@@ -70,11 +71,14 @@ def find_all_archived(
         user: CurrentUser,
         offset: int = Query(default=0, ge=0),
         limit: int = Query(default=20, ge=1, le=100),
+        search: str | None = Query(default=None, min_length=1, max_length=120),
 ):
     if user.role == RoleType.ADMIN:
-        return client_service.get_archived_clients(db, offset, limit)
+        return client_service.get_archived_clients(db, offset, limit, search)
 
-    return client_service.get_archived_clients_by_user(db, user.id, offset, limit)
+    return client_service.get_archived_clients_by_user(
+        db, user.id, offset, limit, search
+    )
 
 
 @router.get(

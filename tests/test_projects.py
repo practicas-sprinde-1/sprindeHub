@@ -115,6 +115,27 @@ def test_list_projects_returns_total_and_respects_pagination(
     assert first_project["id"] != second_project["id"]
 
 
+def test_list_projects_searches_by_project_or_client_name(
+        api_client, created_client, admin_headers):
+    project = aux_create_project(
+        admin_headers,
+        api_client,
+        created_client["id"],
+        name="Portal de facturacion",
+    )
+
+    for search in ("portal", "cliente de prueba"):
+        response = api_client.get(
+            "/api/v1/projects",
+            params={"search": search},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["total"] == 1
+        assert response.json()["items"][0]["id"] == project["id"]
+
+
 def test_list_light_projects_returns_only_id_and_name(
         api_client, created_client, admin_headers):
     project = aux_create_project(

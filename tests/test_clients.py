@@ -245,6 +245,47 @@ def test_list_clients_returns_clients(api_client, admin_headers):
     }
 
 
+def test_list_clients_searches_by_name_cif_or_phone(api_client, admin_headers):
+    first_response = api_client.post(
+        "/api/v1/clients",
+        json={
+            "name": "Empresa Atlas",
+            "cif": "A12345678",
+            "phone": "600111222",
+        },
+        headers=admin_headers,
+    )
+    second_response = api_client.post(
+        "/api/v1/clients",
+        json={
+            "name": "Empresa Boreal",
+            "cif": "B87654321",
+            "phone": "699333444",
+        },
+        headers=admin_headers,
+    )
+    assert first_response.status_code == status.HTTP_201_CREATED
+    assert second_response.status_code == status.HTTP_201_CREATED
+
+    first_client_id = first_response.json()["id"]
+    second_client_id = second_response.json()["id"]
+
+    for search, expected_id in (
+            ("atlas", first_client_id),
+            ("B87654321", second_client_id),
+            ("600111222", first_client_id),
+    ):
+        response = api_client.get(
+            "/api/v1/clients",
+            params={"search": search},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json()["total"] == 1
+        assert response.json()["items"][0]["id"] == expected_id
+
+
 def test_list_clients_respects_limit(api_client, admin_headers):
     response = api_client.get(f"/api/v1/clients?limit=20", headers=admin_headers)
 

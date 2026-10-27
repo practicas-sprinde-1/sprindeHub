@@ -1,21 +1,33 @@
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.security.models.log_model import Log, EntityType
+from app.security.models.user_model import User
 
 
 def find_all(
         db: Session,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 
 ) -> list[Log]:
-    statement = (
-        select(Log)
-        .offset(offset)
-        .limit(limit)
-        .order_by(Log.created_at.desc())
-    )
+    statement = select(Log)
+
+    if search is not None and search.strip():
+        pattern = f"%{search.strip()}%"
+        statement = (
+            statement
+            .join(User, User.id == Log.user_id)
+            .where(
+                or_(
+                    User.username.ilike(pattern),
+                    Log.search_text.ilike(pattern),
+                )
+            )
+        )
+
+    statement = statement.offset(offset).limit(limit).order_by(Log.created_at.desc())
     return list(
         db.scalars(statement).all()
     )

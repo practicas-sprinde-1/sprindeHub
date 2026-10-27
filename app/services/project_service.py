@@ -52,18 +52,20 @@ def get_projects_by_id_client(
 def get_projects(
         db: Session,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
-    return project_repo.find_all(db, offset, limit)
+    return project_repo.find_all(db, offset, limit, search)
 
 
 def get_projects_by_users(
         db: Session,
         user_id: int,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
-    return project_repo.find_all_by_users(db, user_id, offset, limit)
+    return project_repo.find_all_by_users(db, user_id, offset, limit, search)
 
 
 def get_projects_light(
@@ -82,9 +84,10 @@ def get_projects_light_by_users(
 def get_archived_projects(
         db: Session,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
-    return project_repo.find_all_archived(db, offset, limit)
+    return project_repo.find_all_archived(db, offset, limit, search)
 
 
 def get_archived_projects_by_users(
@@ -92,8 +95,11 @@ def get_archived_projects_by_users(
         user_id: int,
         offset: int,
         limit: int,
+        search: str | None = None,
 ) -> PaginatedProjectTableRead:
-    return project_repo.find_all_archived_by_users(db, user_id, offset, limit)
+    return project_repo.find_all_archived_by_users(
+        db, user_id, offset, limit, search
+    )
 
 
 def create_project(
