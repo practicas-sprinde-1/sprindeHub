@@ -43,7 +43,6 @@ class ProjectUpdate(BaseModel):
     )
     client_id: int | None = Field(
         default=None,
-        gt=0
     )
 
 

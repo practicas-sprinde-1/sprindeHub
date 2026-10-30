@@ -121,6 +121,27 @@ def update_client(
     client = get_client(
         db, client_id
     )
+
+    if data.name:
+        exists = client_repo.find_by_name(db, data.name)
+
+        if exists and exists.id != client.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya existe un cliente con ese nombre",
+            )
+    if data.cif == "":
+        data.cif = None
+
+    if data.cif is not None:
+        exists = client_repo.find_by_cif(db, data.cif)
+
+        if exists and exists.id != client.id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Ya existe un cliente con ese cif",
+            )
+
     updates = data.model_dump(
         exclude_unset=True
     )

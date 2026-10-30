@@ -26,7 +26,7 @@ class Client(Base):
 
     cif: Mapped[str | None] = mapped_column(
         String(120),
-        nullable=True,
+        nullable=False,
         unique=True
     )
 

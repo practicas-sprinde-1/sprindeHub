@@ -39,9 +39,10 @@ def get_users_by_id_client(
 def get_users(
         db: Session,
         offset: int,
-        limit: int
+        limit: int,
+        search: str | None = None,
 ) -> list[User]:
-    return user_repo.find_all(db, offset, limit)
+    return user_repo.find_all(db, offset, limit, search)
 
 
 def get_inactive_users(
@@ -253,8 +254,8 @@ def change_password(
             user.password_hash,
     ):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Las contraseñas no coinciden",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Contraseña actual incorrecta",
         )
     new_password = data.new_password
     encrypted_new_pass = hash_password(new_password)

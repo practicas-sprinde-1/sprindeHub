@@ -142,6 +142,8 @@ def update_project(
 ) -> Project:
     project = get_project(db, project_id)
 
+
+
     updates = data.model_dump(
         exclude_unset=True
     )

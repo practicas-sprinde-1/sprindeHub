@@ -109,6 +109,20 @@ def find_by_id(
 ) -> Client | None:
     return db.get(Client, client_id)
 
+def find_by_name(
+        db: Session,
+        client_name: str,
+) -> Client | None:
+    stmt = select(Client).where(Client.name == client_name)
+    return db.scalars(stmt).first()
+
+def find_by_cif(
+        db: Session,
+        cif: str,
+) -> Client | None:
+    stmt = select(Client).where(Client.cif == cif)
+    return db.scalars(stmt).first()
+
 
 def find_all_light(
         db: Session,

@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import String, cast, or_, select
 from sqlalchemy.orm import Session
 
 from app.security.models.user_client_model import UserClient
@@ -9,11 +9,21 @@ def find_all(
         db: Session,
         offset: int = 0,
         limit: int = 20,
+        search: str | None = None,
 
 ) -> list[User]:
+    statement = select(User).where(User.is_active.is_(True))
+
+    if search is not None:
+        pattern = f"%{search.strip()}%"
+        statement = statement.where(or_(
+            User.email.ilike(pattern),
+            User.username.ilike(pattern),
+            cast(User.role, String).ilike(pattern),
+        ))
+
     statement = (
-        select(User)
-        .where(User.is_active.is_(True))
+        statement
         .offset(offset)
         .limit(limit)
         .order_by(User.id)

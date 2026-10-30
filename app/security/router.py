@@ -134,9 +134,10 @@ def get_users(
         db: DbSession,
         _: AdminUser,
         offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100)
+        limit: int = Query(default=20, ge=1, le=100),
+        search: str | None = Query(default=None, min_length=1, max_length=120),
 ):
-    return user_service.get_users(db, offset, limit)
+    return user_service.get_users(db, offset, limit, search)
 
 
 @router_admin.post(

@@ -206,6 +206,35 @@ def test_get_users_by_admin(
     assert len(response.json()) == 2
 
 
+def test_get_users_searches_by_email_username_or_role(
+        api_client,
+        admin_headers,
+):
+    created = api_client.post(
+        "/api/v1/admin/users",
+        json={
+            "email": "searchable@example.com",
+            "username": "NombreBuscable",
+            "password": "stringstri",
+            "role": "GUEST",
+            "is_active": True,
+        },
+        headers=admin_headers,
+    )
+    assert created.status_code == status.HTTP_201_CREATED
+    user_id = created.json()["id"]
+
+    for search in ("searchable@example.com", "nombrebuscable", "guest"):
+        response = api_client.get(
+            "/api/v1/admin/users",
+            params={"search": search},
+            headers=admin_headers,
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert [user["id"] for user in response.json()] == [user_id]
+
+
 def test_get_users_by_user(
         api_client,
         user_headers,
