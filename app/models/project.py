@@ -78,3 +78,10 @@ class Project(Base):
         default=True,
         server_default="1",
     )
+
+    is_favorite: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )

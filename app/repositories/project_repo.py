@@ -6,6 +6,7 @@ from app.models.client import Client
 from app.models.link import Link
 from app.models.note import Note
 from app.models.project import Project
+from app.models.user_favorite_project_model import UserFavoriteProject
 from app.schemas.project_schema import (
     PaginatedProjectTableRead,
     ProjectLightRead,
@@ -30,7 +31,17 @@ def find_all(
         offset: int = 0,
         limit: int = 20,
         search: str | None = None,
+    favorite_user_id: int | None = None,
 ) -> PaginatedProjectTableRead:
+    project_filter = (
+        Project.id.in_(
+            select(UserFavoriteProject.project_id).where(
+                UserFavoriteProject.user_id == favorite_user_id
+            )
+        )
+        if favorite_user_id is not None
+        else Project.is_active.is_(True)
+    )
     commands_count_query = (
         select(func.count(Command.id))
         .where(Command.project_id == Project.id)
@@ -52,7 +63,7 @@ def find_all(
 
     total_statement = (
         select(func.count(Project.id))
-        .where(Project.is_active.is_(True))
+        .where(project_filter)
     )
     search_filter = _project_search_filter(search)
     if search_filter is not None:
@@ -80,7 +91,7 @@ def find_all(
             selectinload(Project.services),
             selectinload(Project.domains),
         )
-        .where(Project.is_active.is_(True))
+        .where(project_filter)
         .offset(offset)
         .limit(limit)
         .order_by(Project.id)
@@ -97,6 +108,7 @@ def find_all(
         project_table = ProjectTableRead(
             id=project.id,
             name=project.name,
+            is_favorite=project.is_favorite,
             client=project.client,
             environments=project.environments,
             repositories=project.repositories,
@@ -189,6 +201,7 @@ def find_all_by_users(
         project_table = ProjectTableRead(
             id=project.id,
             name=project.name,
+            is_favorite=project.is_favorite,
             client=project.client,
             environments=project.environments,
             repositories=project.repositories,
@@ -276,6 +289,7 @@ def find_all_archived(
         ProjectTableRead(
             id=project.id,
             name=project.name,
+            is_favorite=project.is_favorite,
             client=project.client,
             environments=project.environments,
             repositories=project.repositories,
@@ -366,6 +380,7 @@ def find_all_archived_by_users(
         ProjectTableRead(
             id=project.id,
             name=project.name,
+            is_favorite=project.is_favorite,
             client=project.client,
             environments=project.environments,
             repositories=project.repositories,
@@ -410,7 +425,9 @@ def find_by_id(
 def find_all_light(
         db: Session,
 ) -> list[ProjectLightRead]:
-    statement = select(Project.id, Project.name).where(Project.is_active.is_(True))
+    statement = select(
+        Project.id, Project.name, Project.is_favorite
+    ).where(Project.is_active.is_(True))
     projects = db.execute(statement.order_by(Project.id)).all()
 
     projects_light = []
@@ -418,7 +435,8 @@ def find_all_light(
     for project in projects:
         project_light = ProjectLightRead(
             id=project.id,
-            name=project.name
+            name=project.name,
+            is_favorite=project.is_favorite,
         )
         projects_light.append(project_light)
 
@@ -430,7 +448,7 @@ def find_all_light_by_users(
         user_id: int,
 ) -> list[ProjectLightRead]:
     statement = (
-        select(Project.id, Project.name)
+        select(Project.id, Project.name, Project.is_favorite)
         .join(UserClient, UserClient.client_id == Project.client_id)
         .where(
             Project.is_active.is_(True),
@@ -446,7 +464,8 @@ def find_all_light_by_users(
     for project in projects:
         project_light = ProjectLightRead(
             id=project.id,
-            name=project.name
+            name=project.name,
+            is_favorite=project.is_favorite,
         )
         projects_light.append(project_light)
 
@@ -511,6 +530,7 @@ def find_by_client_id(
         project_table = ProjectTableRead(
             id=project.id,
             name=project.name,
+            is_favorite=project.is_favorite,
             client=project.client,
             environments=project.environments,
             repositories=project.repositories,

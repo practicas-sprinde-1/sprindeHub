@@ -40,14 +40,11 @@ class ClientUpdate(BaseModel):
         max_length=120
     )
 
-    is_active: bool | None = Field(
-        default=None
-    )
-
 
 class ClientRead(ClientBase):
     id: int
     is_active: bool
+    is_favorite: bool
 
     # Permite crear el DTO desde un objeto con atributos
     # dto = ClientRead.model_validate(client_orm)
@@ -59,6 +56,7 @@ class ClientRead(ClientBase):
 class ClientLightRead(BaseModel):
     id: int
     name: str
+    is_favorite: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

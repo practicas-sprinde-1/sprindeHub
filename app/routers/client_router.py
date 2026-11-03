@@ -12,10 +12,14 @@ from app.schemas.client_schema import (
     ClientUpdate,
     PaginatedClientRead,
 )
+from app.schemas.user_favorite_client_schema import (
+    UserFavoriteClientAccess,
+)
 from app.security.dependencies import require_client_access, require_modifier_role, require_admin, \
     get_active_current_user
 from app.security.models.user_model import User, RoleType
 from app.services import client_service
+from app.services import user_favorite_client_service
 
 router = APIRouter(
     prefix="/clients",
@@ -93,6 +97,43 @@ def find_all_light(
         return client_service.get_clients_light(db)
 
     return client_service.get_clients_light_by_user(db, user.id)
+
+
+@router.get(
+    "/favorites",
+    response_model=PaginatedClientRead,
+)
+def find_my_favorites(
+        db: DbSession,
+        current_user: CurrentUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100),
+):
+    return user_favorite_client_service.get_user_favorite_clients_by_user_id(
+        db, current_user.id, offset, limit
+    )
+
+
+@router.patch("/{client_id}/favorite", response_model=ClientRead)
+def favorite(
+        db: DbSession,
+        current_user: CurrentUser,
+        data: Annotated[UserFavoriteClientAccess, Depends()],
+):
+    client = client_service.get_client(db, data.client_id)
+    require_client_access(client.id, db, current_user)
+    return client_service.favorite_client(db, client.id, current_user)
+
+
+@router.patch("/{client_id}/unfavorite", response_model=ClientRead)
+def unfavorite(
+        db: DbSession,
+        current_user: CurrentUser,
+        data: Annotated[UserFavoriteClientAccess, Depends()],
+):
+    client = client_service.get_client(db, data.client_id)
+    require_client_access(client.id, db, current_user)
+    return client_service.unfavorite_client(db, client.id, current_user)
 
 
 @router.get(

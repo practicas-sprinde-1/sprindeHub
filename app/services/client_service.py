@@ -2,6 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
+from app.models.user_favorite_client_model import UserFavoriteClient
 from app.repositories import client_repo
 from app.schemas.client_schema import (
     ClientCreate,
@@ -256,6 +257,54 @@ def get_active_client(db: Session, client_id: int) -> Client:
         )
 
     return client
+
+
+def favorite_client(
+        db: Session,
+        client_id: int,
+        current_user: User,
+) -> Client:
+    client = get_client(db, client_id)
+    favorite = db.get(UserFavoriteClient, (current_user.id, client.id))
+
+    if favorite is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El cliente ya está en favoritos",
+        )
+
+    db.add(UserFavoriteClient(user_id=current_user.id, client_id=client.id))
+    client.is_favorite = True
+
+    try:
+        db.commit()
+        db.refresh(client)
+        return client
+    except Exception:
+        db.rollback()
+        raise
+
+
+def unfavorite_client(
+        db: Session,
+        client_id: int,
+        current_user: User,
+) -> Client:
+    client = get_client(db, client_id)
+    favorite = db.get(UserFavoriteClient, (current_user.id, client.id))
+
+    if favorite is not None:
+        db.delete(favorite)
+
+    client.is_favorite = False
+
+    try:
+        db.commit()
+        db.refresh(client)
+        return client
+    except Exception:
+        db.rollback()
+        raise
 
 
 def create_client_in_project_service(

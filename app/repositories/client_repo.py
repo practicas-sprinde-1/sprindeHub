@@ -2,6 +2,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
+from app.models.user_favorite_client_model import UserFavoriteClient
 from app.schemas.client_schema import ClientLightRead, PaginatedClientRead
 from app.security.models.user_client_model import UserClient
 
@@ -56,18 +57,26 @@ def find_all_archived_by_user(
 
 def _find_all(
         db: Session,
-        is_active: bool,
+        is_active: bool | None,
         offset: int,
         limit: int,
         user_id: int | None = None,
         search: str | None = None,
+    favorite_user_id: int | None = None,
 ) -> PaginatedClientRead:
-    total_statement = (
-        select(func.count(Client.id))
-        .where(Client.is_active.is_(is_active))
-    )
-
-    statement = select(Client).where(Client.is_active.is_(is_active))
+    total_statement = select(func.count(Client.id))
+    statement = select(Client)
+    if is_active is not None:
+        total_statement = total_statement.where(Client.is_active.is_(is_active))
+        statement = statement.where(Client.is_active.is_(is_active))
+    if favorite_user_id is not None:
+        favorite_filter = Client.id.in_(
+            select(UserFavoriteClient.client_id).where(
+                UserFavoriteClient.user_id == favorite_user_id
+            )
+        )
+        total_statement = total_statement.where(favorite_filter)
+        statement = statement.where(favorite_filter)
 
     if user_id is not None:
         total_statement = total_statement.join(
@@ -141,6 +150,7 @@ def find_all_light(
         client_light = ClientLightRead(
             id=client.id,
             name=client.name,
+            is_favorite=client.is_favorite,
         )
         clients_light.append(client_light)
 
@@ -152,7 +162,7 @@ def find_all_light_by_user(
         user_id: int,
 ) -> list[ClientLightRead]:
     statement = (
-        select(Client.id, Client.name)
+        select(Client.id, Client.name, Client.is_favorite)
         .join(UserClient, UserClient.client_id == Client.id)
         .where(
             Client.is_active.is_(True),
@@ -169,6 +179,7 @@ def find_all_light_by_user(
         client_light = ClientLightRead(
             id=client.id,
             name=client.name,
+            is_favorite=client.is_favorite,
         )
         clients_light.append(client_light)
 
@@ -190,3 +201,11 @@ def delete(
         client: Client,
 ) -> None:
     db.delete(client)
+
+
+def find_favorites_by_user(
+        db: Session, user_id: int, offset: int = 0, limit: int = 20,
+) -> PaginatedClientRead:
+    return _find_all(
+        db, is_active=None, offset=offset, limit=limit, favorite_user_id=user_id
+    )

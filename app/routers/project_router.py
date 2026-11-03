@@ -8,10 +8,14 @@ from app.models.client import Client
 from app.models.project import Project
 from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectDetailRead, ProjectUpdate, \
     ProjectRead, ProjectFullCreate, ProjectLightRead
+from app.schemas.user_favorite_project_schema import (
+    UserFavoriteProjectAccess,
+)
 from app.security.dependencies import require_project_access, require_client_access, get_active_current_user, \
     require_modifier_role, check_client_access
 from app.security.models.user_model import RoleType, User
 from app.services import project_service
+from app.services import user_favorite_project_service
 
 router = APIRouter(
     prefix="/projects",
@@ -91,6 +95,44 @@ def find_all_light(
         return project_service.get_projects_light(db)
 
     return project_service.get_projects_light_by_users(db, current_user.id)
+
+
+@router.get(
+    "/favorites",
+    response_model=PaginatedProjectTableRead,
+)
+def find_my_favorites(
+        db: DbSession,
+        current_user: CurrentUser,
+        offset: int = Query(default=0, ge=0),
+        limit: int = Query(default=20, ge=1, le=100),
+):
+    return user_favorite_project_service.get_user_favorite_projects_by_user_id(
+        db, current_user.id, offset, limit
+    )
+
+
+@router.patch("/{project_id}/favorite", response_model=ProjectRead)
+def favorite(
+        db: DbSession,
+        current_user: CurrentUser,
+        data: Annotated[UserFavoriteProjectAccess, Depends()],
+):
+    project = project_service.get_project(db, data.project_id)
+    check_client_access(db, current_user, project.client_id)
+    return project_service.favorite_project(db, project.id, current_user)
+
+
+@router.patch("/{project_id}/unfavorite", response_model=ProjectRead)
+def unfavorite(
+        db: DbSession,
+        current_user: CurrentUser,
+        data: Annotated[UserFavoriteProjectAccess, Depends()],
+):
+    project = project_service.get_project(db, data.project_id)
+    check_client_access(db, current_user, project.client_id)
+    return project_service.unfavorite_project(db, project.id, current_user)
+
 
 
 @router.get(

@@ -10,6 +10,7 @@ from app.models.note import Note
 from app.models.project import Project
 from app.models.repository import Repository
 from app.models.service import Service
+from app.models.user_favorite_project_model import UserFavoriteProject
 from app.repositories import project_repo
 from app.schemas.project_schema import (
     PaginatedProjectTableRead,
@@ -79,6 +80,56 @@ def get_projects_light_by_users(
         user_id: int,
 ) -> list[ProjectLightRead]:
     return project_repo.find_all_light_by_users(db, user_id)
+
+
+def favorite_project(
+        db: Session,
+        project_id: int,
+        current_user: User,
+) -> Project:
+    project = get_project(db, project_id)
+    favorite = db.get(UserFavoriteProject, (current_user.id, project.id))
+
+    if favorite is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="El proyecto ya está en favoritos",
+        )
+
+    db.add(
+        UserFavoriteProject(user_id=current_user.id, project_id=project.id)
+    )
+    project.is_favorite = True
+
+    try:
+        db.commit()
+        db.refresh(project)
+        return project
+    except Exception:
+        db.rollback()
+        raise
+
+
+def unfavorite_project(
+        db: Session,
+        project_id: int,
+        current_user: User,
+) -> Project:
+    project = get_project(db, project_id)
+    favorite = db.get(UserFavoriteProject, (current_user.id, project.id))
+
+    if favorite is not None:
+        db.delete(favorite)
+
+    project.is_favorite = False
+
+    try:
+        db.commit()
+        db.refresh(project)
+        return project
+    except Exception:
+        db.rollback()
+        raise
 
 
 def get_archived_projects(

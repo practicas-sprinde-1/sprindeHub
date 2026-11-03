@@ -26,7 +26,7 @@ class Client(Base):
 
     cif: Mapped[str | None] = mapped_column(
         String(120),
-        nullable=False,
+        nullable=True,
         unique=True
     )
 
@@ -41,6 +41,13 @@ class Client(Base):
         nullable=False,
         default=True,
         server_default="1",
+    )
+
+    is_favorite: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
     )
 
     projects: Mapped[list["Project"]] = relationship(

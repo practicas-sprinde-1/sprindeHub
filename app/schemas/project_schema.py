@@ -49,6 +49,7 @@ class ProjectUpdate(BaseModel):
 class ProjectRead(ProjectBase):
     id: int
     is_active: bool
+    is_favorite: bool
 
     model_config = ConfigDict(
         from_attributes=True
@@ -58,6 +59,7 @@ class ProjectRead(ProjectBase):
 class ProjectLightRead(BaseModel):
     id: int
     name: str
+    is_favorite: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -65,6 +67,7 @@ class ProjectLightRead(BaseModel):
 class ClientTableRead(BaseModel):
     id: int
     name: str
+    is_favorite: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -102,6 +105,7 @@ class DomainTableRead(BaseModel):
 class ProjectTableRead(BaseModel):
     id: int
     name: str
+    is_favorite: bool = False
     client: ClientTableRead | None
     environments: list[EnvironmentTableRead]
     repositories: list[RepositoryTableRead]

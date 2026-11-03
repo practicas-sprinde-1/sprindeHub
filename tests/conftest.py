@@ -26,6 +26,8 @@ from main import app
 def clean_tables():
     with engine.begin() as connection:
         connection.execute(text("DELETE FROM logs"))
+        connection.execute(text("DELETE FROM user_favorite_projects"))
+        connection.execute(text("DELETE FROM user_favorite_clients"))
         connection.execute(text("DELETE FROM user_clients"))
         connection.execute(text("DELETE FROM notes"))
         connection.execute(text("DELETE FROM commands"))
@@ -42,6 +44,8 @@ def clean_tables():
 
     with engine.begin() as connection:
         connection.execute(text("DELETE FROM logs"))
+        connection.execute(text("DELETE FROM user_favorite_projects"))
+        connection.execute(text("DELETE FROM user_favorite_clients"))
         connection.execute(text("DELETE FROM user_clients"))
         connection.execute(text("DELETE FROM notes"))
         connection.execute(text("DELETE FROM commands"))
