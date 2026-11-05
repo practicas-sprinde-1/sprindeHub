@@ -1,16 +1,24 @@
-from sqlalchemy import select
+from sqlalchemy import  select
 from sqlalchemy.orm import Session
 
 from app.models.user_favorite_project_model import UserFavoriteProject
 
 
-def find_all(db: Session, offset: int = 0, limit: int = 20) -> list[UserFavoriteProject]:
-    statement = select(UserFavoriteProject).offset(offset).limit(limit)
+def _execute_query(
+    db: Session, statement
+) -> list[UserFavoriteProject]:
     return list(db.scalars(statement).all())
 
 
+def find_all(
+    db: Session, offset: int = 0, limit: int = 20
+) -> list[UserFavoriteProject]:
+    statement = select(UserFavoriteProject).offset(offset).limit(limit)
+    return _execute_query(db, statement)
+
+
 def find_by_user_id(
-        db: Session, user_id: int, offset: int = 0, limit: int = 20
+    db: Session, user_id: int, offset: int = 0, limit: int = 20
 ) -> list[UserFavoriteProject]:
     statement = (
         select(UserFavoriteProject)
@@ -19,11 +27,11 @@ def find_by_user_id(
         .limit(limit)
         .order_by(UserFavoriteProject.project_id)
     )
-    return list(db.scalars(statement).all())
+    return _execute_query(db, statement)
 
 
 def find_by_project_id(
-        db: Session, project_id: int, offset: int = 0, limit: int = 20
+    db: Session, project_id: int, offset: int = 0, limit: int = 20
 ) -> list[UserFavoriteProject]:
     statement = (
         select(UserFavoriteProject)
@@ -32,10 +40,10 @@ def find_by_project_id(
         .limit(limit)
         .order_by(UserFavoriteProject.user_id)
     )
-    return list(db.scalars(statement).all())
+    return _execute_query(db, statement)
 
 
 def find_by_ids(
-        db: Session, user_id: int, project_id: int
+    db: Session, user_id: int, project_id: int
 ) -> UserFavoriteProject | None:
     return db.get(UserFavoriteProject, (user_id, project_id))
