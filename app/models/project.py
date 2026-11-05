@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from sqlalchemy import String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from app.models.command import Command
     from app.models.domain import Domain
     from app.models.note import Note
+    from app.models.user_favorite_project_model import UserFavoriteProject
 
 
 class Project(Base):
@@ -79,9 +80,9 @@ class Project(Base):
         server_default="1",
     )
 
-    is_favorite: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=False,
-        server_default="0",
+    #Uso esta relacion para crear is_favorite en el schema de lectura para el frontend
+    user_favorites: Mapped[list["UserFavoriteProject"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

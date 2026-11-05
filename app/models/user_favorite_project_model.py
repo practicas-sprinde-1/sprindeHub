@@ -19,5 +19,5 @@ class UserFavoriteProject(Base):
         primary_key=True,
     )
 
-    user: Mapped["User"] = relationship()
-    project: Mapped["Project"] = relationship()
+    user: Mapped["User"] = relationship(back_populates="favorite_projects")
+    project: Mapped["Project"] = relationship(back_populates="user_favorites")

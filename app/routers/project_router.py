@@ -6,238 +6,236 @@ from sqlalchemy.orm import Session
 from app.database.dependency import get_db
 from app.models.client import Client
 from app.models.project import Project
-from app.schemas.project_schema import PaginatedProjectTableRead, ProjectCreate, ProjectDetailRead, ProjectUpdate, \
-    ProjectRead, ProjectFullCreate, ProjectLightRead
-from app.schemas.user_favorite_project_schema import (
-    UserFavoriteProjectAccess,
+from app.schemas.project_schema import (
+    PaginatedProjectTableRead,
+    ProjectCreate,
+    ProjectDetailRead,
+    ProjectFullCreate,
+    ProjectLightRead,
+    ProjectRead,
+    ProjectUpdate,
 )
-from app.security.dependencies import require_project_access, require_client_access, get_active_current_user, \
-    require_modifier_role, check_client_access
+from app.schemas.user_favorite_project_schema import UserFavoriteProjectAccess
+from app.security.dependencies import (
+    check_client_access,
+    get_active_current_user,
+    require_client_access,
+    require_modifier_role,
+    require_project_access,
+)
 from app.security.models.user_model import RoleType, User
-from app.services import project_service
-from app.services import user_favorite_project_service
+from app.services import project_service, user_favorite_project_service
 
-router = APIRouter(
-    prefix="/projects",
-    tags=["projects"]
-)
+router = APIRouter(prefix="/projects", tags=["projects"])
 
-DbSession = Annotated[
-    Session,
-    Depends(get_db)
-]
-
-CurrentProject = Annotated[
-    Project, Depends(require_project_access)
-]
-
-CurrentClient = Annotated[
-    Client, Depends(require_client_access)
-]
-
-CurrentUser = Annotated[
-    User,
-    Depends(get_active_current_user),
-]
-
-CurrentWriter = Annotated[
-    User, Depends(require_modifier_role)
-]
+DbSession = Annotated[Session, Depends(get_db)]
+ProjectWithAccess = Annotated[Project, Depends(require_project_access)]
+ClientWithAccess = Annotated[Client, Depends(require_client_access)]
+CurrentUser = Annotated[User, Depends(get_active_current_user)]
+CurrentWriter = Annotated[User, Depends(require_modifier_role)]
+PaginationOffset = Annotated[int, Query(ge=0)]
+PaginationLimit = Annotated[int, Query(ge=1, le=100)]
+ProjectSearch = Annotated[str | None, Query(min_length=1, max_length=120)]
 
 
-@router.get(
-    "",
-    response_model=PaginatedProjectTableRead
-)
-def find_all(
-        db: DbSession,
-        current_user: CurrentUser,
-        offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100),
-        search: str | None = Query(default=None, min_length=1, max_length=120),
+def _get_project_with_client_access(
+    db: Session,
+    user: User,
+    project_id: int,
+) -> Project:
+    project = project_service.get_project(db, project_id)
+    check_client_access(db, user, project.client_id)
+    return project
+
+
+def _validate_optional_client_access(
+    db: Session,
+    user: User,
+    client_id: int | None,
+) -> None:
+    if client_id is None:
+        return
+
+    check_client_access(db, user, client_id)
+
+
+@router.get("", response_model=PaginatedProjectTableRead)
+def list_projects(
+    db: DbSession,
+    current_user: CurrentUser,
+    offset: PaginationOffset = 0,
+    limit: PaginationLimit = 20,
+    search: ProjectSearch = None,
 ):
     if current_user.role == RoleType.ADMIN:
-        return project_service.get_projects(db, offset, limit, search)
+        return project_service.get_projects(
+            db,
+            offset,
+            limit,
+            search,
+            favorite_user_id=current_user.id,
+        )
 
     return project_service.get_projects_by_users(
-        db, current_user.id, offset, limit, search
+        db,
+        current_user.id,
+        offset,
+        limit,
+        search,
     )
 
 
-@router.get(
-    "/archived",
-    response_model=PaginatedProjectTableRead
-)
-def find_all_archived(
-        db: DbSession,
-        current_user: CurrentUser,
-        offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100),
-        search: str | None = Query(default=None, min_length=1, max_length=120),
+@router.get("/archived", response_model=PaginatedProjectTableRead)
+def list_archived_projects(
+    db: DbSession,
+    current_user: CurrentUser,
+    offset: PaginationOffset = 0,
+    limit: PaginationLimit = 20,
+    search: ProjectSearch = None,
 ):
     if current_user.role == RoleType.ADMIN:
-        return project_service.get_archived_projects(db, offset, limit, search)
+        return project_service.get_archived_projects(
+            db,
+            offset,
+            limit,
+            search,
+            favorite_user_id=current_user.id,
+        )
 
     return project_service.get_archived_projects_by_users(
-        db, current_user.id, offset, limit, search
+        db,
+        current_user.id,
+        offset,
+        limit,
+        search,
     )
 
 
-@router.get(
-    "/light",
-    response_model=list[ProjectLightRead],
-)
-def find_all_light(
-        db: DbSession,
-        current_user: CurrentUser,
+@router.get("/light", response_model=list[ProjectLightRead])
+def list_light_projects(
+    db: DbSession,
+    current_user: CurrentUser,
 ):
     if current_user.role == RoleType.ADMIN:
-        return project_service.get_projects_light(db)
+        return project_service.get_projects_light(db, current_user.id)
 
     return project_service.get_projects_light_by_users(db, current_user.id)
 
 
-@router.get(
-    "/favorites",
-    response_model=PaginatedProjectTableRead,
-)
-def find_my_favorites(
-        db: DbSession,
-        current_user: CurrentUser,
-        offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100),
+@router.get("/favorites", response_model=PaginatedProjectTableRead)
+def list_favorite_projects(
+    db: DbSession,
+    current_user: CurrentUser,
+    offset: PaginationOffset = 0,
+    limit: PaginationLimit = 20,
 ):
     return user_favorite_project_service.get_user_favorite_projects_by_user_id(
-        db, current_user.id, offset, limit
+        db,
+        current_user.id,
+        offset,
+        limit,
     )
 
 
 @router.patch("/{project_id}/favorite", response_model=ProjectRead)
-def favorite(
-        db: DbSession,
-        current_user: CurrentUser,
-        data: Annotated[UserFavoriteProjectAccess, Depends()],
+def add_project_to_favorites(
+    db: DbSession,
+    current_user: CurrentUser,
+    access: Annotated[UserFavoriteProjectAccess, Depends()],
 ):
-    project = project_service.get_project(db, data.project_id)
-    check_client_access(db, current_user, project.client_id)
+    project = _get_project_with_client_access(db, current_user, access.project_id)
     return project_service.favorite_project(db, project.id, current_user)
 
 
 @router.patch("/{project_id}/unfavorite", response_model=ProjectRead)
-def unfavorite(
-        db: DbSession,
-        current_user: CurrentUser,
-        data: Annotated[UserFavoriteProjectAccess, Depends()],
+def remove_project_from_favorites(
+    db: DbSession,
+    current_user: CurrentUser,
+    access: Annotated[UserFavoriteProjectAccess, Depends()],
 ):
-    project = project_service.get_project(db, data.project_id)
-    check_client_access(db, current_user, project.client_id)
+    project = _get_project_with_client_access(db, current_user, access.project_id)
     return project_service.unfavorite_project(db, project.id, current_user)
 
 
-
-@router.get(
-    "/{project_id}",
-    response_model=ProjectDetailRead
-)
-def find_by_id(
-        project: CurrentProject
-):
+@router.get("/{project_id}", response_model=ProjectDetailRead)
+def get_project(project: ProjectWithAccess):
     return project
 
 
-@router.get(
-    "/client/{client_id}",
-    response_model=PaginatedProjectTableRead
-)
-def find_by_client_id(
-        db: DbSession,
-        client: CurrentClient,
-        offset: int = Query(default=0, ge=0),
-        limit: int = Query(default=20, ge=1, le=100)
+@router.get("/client/{client_id}", response_model=PaginatedProjectTableRead)
+def list_projects_by_client(
+    db: DbSession,
+    current_user: CurrentUser,
+    client: ClientWithAccess,
+    offset: PaginationOffset = 0,
+    limit: PaginationLimit = 20,
 ):
-    return project_service.get_projects_by_id_client(db, client.id, offset, limit)
+    return project_service.get_projects_by_id_client(
+        db,
+        client.id,
+        offset,
+        limit,
+        current_user.id,
+    )
 
 
-@router.post(
-    "",
-    response_model=ProjectRead,
-    status_code=status.HTTP_201_CREATED
-)
-def create(
-        db: DbSession,
-        data: ProjectCreate,
-        current_user: CurrentWriter,
-
+@router.post("", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
+def create_project(
+    db: DbSession,
+    data: ProjectCreate,
+    current_user: CurrentWriter,
 ):
     check_client_access(db, current_user, data.client_id)
-
     return project_service.create_project(db, data, current_user)
 
 
 @router.post(
     "/create-completed-project",
     response_model=ProjectRead,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
-def create(
-        db: DbSession,
-        data: ProjectFullCreate,
-        current_user: CurrentWriter,
-
+def create_completed_project(
+    db: DbSession,
+    data: ProjectFullCreate,
+    current_user: CurrentWriter,
 ):
-    if data.client_id is not None:
-        check_client_access(db, current_user, data.client_id)
-
+    _validate_optional_client_access(db, current_user, data.client_id)
     return project_service.create_full_project(db, data, current_user)
 
 
-@router.patch(
-    "/{project_id}",
-    response_model=ProjectRead
-)
-def update(
-        db: DbSession,
-        data: ProjectUpdate,
-        current_user: CurrentWriter,
-        current_project: CurrentProject,
+@router.patch("/{project_id}", response_model=ProjectRead)
+def update_project(
+    db: DbSession,
+    data: ProjectUpdate,
+    current_user: CurrentWriter,
+    project: ProjectWithAccess,
 ):
-    if data.client_id is not None:
-        check_client_access(db, current_user, data.client_id)
-
-    return project_service.update_project(db, current_project.id, data, current_user)
+    _validate_optional_client_access(db, current_user, data.client_id)
+    return project_service.update_project(db, project.id, data, current_user)
 
 
-@router.delete(
-    "/{project_id}",
-    status_code=status.HTTP_204_NO_CONTENT
-)
-def delete(
-        db: DbSession,
-        current_user: CurrentWriter,
-        current_project: CurrentProject
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
+    db: DbSession,
+    current_user: CurrentWriter,
+    project: ProjectWithAccess,
 ) -> None:
-    project_service.delete_project(db, current_project.id, current_user)
+    project_service.delete_project(db, project.id, current_user)
 
 
-@router.patch(
-    "/{project_id}/archive",
-    response_model=ProjectRead
-)
-def archive(
-        db: DbSession,
-        current_user: CurrentWriter,
-        current_project: CurrentProject
+@router.patch("/{project_id}/archive", response_model=ProjectRead)
+def archive_project(
+    db: DbSession,
+    current_user: CurrentWriter,
+    project: ProjectWithAccess,
 ):
-    return project_service.archive_project(db, current_project.id, current_user)
+    return project_service.archive_project(db, project.id, current_user)
 
 
-@router.patch(
-    "/{project_id}/restore",
-    response_model=ProjectRead
-)
-def restore(
-        db: DbSession,
-        current_user: CurrentWriter,
-        current_project: CurrentProject
+@router.patch("/{project_id}/restore", response_model=ProjectRead)
+def restore_project(
+    db: DbSession,
+    current_user: CurrentWriter,
+    project: ProjectWithAccess,
 ):
-    return project_service.restore_project(db, current_project.id, current_user)
+    return project_service.restore_project(db, project.id, current_user)

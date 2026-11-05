@@ -19,5 +19,5 @@ class UserFavoriteClient(Base):
         primary_key=True,
     )
 
-    user: Mapped["User"] = relationship()
-    client: Mapped["Client"] = relationship()
+    user: Mapped["User"] = relationship(back_populates="favorite_clients")
+    client: Mapped["Client"] = relationship(back_populates="user_favorites")
