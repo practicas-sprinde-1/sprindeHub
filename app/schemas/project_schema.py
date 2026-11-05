@@ -208,7 +208,7 @@ class ProjectFullCreate(ProjectBase):
 
     client_id: int | None = None
     client: ClientCreate | None = None
-
+    #Uso default_factory=list para crear una lista nueva por cada tabla
     environments: list[EnvironmentInProjectCreate] = Field(default_factory=list)
     repositories: list[RepositoryInProjectCreate] = Field(default_factory=list)
     services: list[ServiceInProjectCreate] = Field(default_factory=list)

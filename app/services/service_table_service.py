@@ -10,6 +10,31 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_service_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        service_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.SERVICE,
+        affected_entity_id=service_id,
+    )
+
+
+def _commit_and_refresh_service(db: Session, service: Service) -> Service:
+    try:
+        db.commit()
+        db.refresh(service)
+        return service
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_service(
         db: Session,
         service_id: int
@@ -65,16 +90,8 @@ def create_service(
     try:
         service_repo.save(db, service)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.SERVICE,
-            affected_entity_id=service.id
-        )
-        db.commit()
-        db.refresh(service)
-        return service
+        _register_service_log(db, current_user.id, ActionType.CREATE, service.id)
+        return _commit_and_refresh_service(db, service)
 
     except Exception:
         db.rollback()
@@ -101,16 +118,8 @@ def update_service(
     try:
         service_repo.save(db, service)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.SERVICE,
-            affected_entity_id=service.id
-        )
-        db.commit()
-        db.refresh(service)
-        return service
+        _register_service_log(db, current_user.id, ActionType.UPDATE, service.id)
+        return _commit_and_refresh_service(db, service)
 
     except Exception:
         db.rollback()
@@ -128,13 +137,7 @@ def delete_service(
     try:
         service_repo.delete(db, service)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.SERVICE,
-            affected_entity_id=service.id
-        )
+        _register_service_log(db, current_user.id, ActionType.DELETE, service.id)
         db.commit()
         return f"El servicio del proyecto {name_project} ha sido borrado correctamente"
 

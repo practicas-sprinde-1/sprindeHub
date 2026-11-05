@@ -28,7 +28,9 @@ def get_user_favorite_projects_by_user_id(
         db: Session, user_id: int, offset: int, limit: int
 ) -> PaginatedProjectTableRead:
     user_service.get_user(db, user_id)
-    return project_repo.find_all(db, offset, limit, favorite_user_id=user_id)
+    return project_repo.find_all(
+        db, offset, limit, favorite_user_id=user_id, only_favorites=True
+    )
 
 
 def get_user_favorite_projects_by_project_id(
@@ -58,7 +60,7 @@ def revoke_user_favorite_project(db: Session, user_id: int, project_id: int) -> 
     if user_favorite_project_repo.find_by_ids(db, user.id, project.id) is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"El proyecto {project.name} ya está asignado en favoritos'.",
+            detail=f"El proyecto {project.name} no está en favoritos.",
         )
     project_service.unfavorite_project(db, project.id, user)
     return f"El proyecto {project.name} ha sido eliminado de favoritos correctamente ."

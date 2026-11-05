@@ -10,6 +10,31 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_link_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        link_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.LINK,
+        affected_entity_id=link_id,
+    )
+
+
+def _commit_and_refresh_link(db: Session, link: Link) -> Link:
+    try:
+        db.commit()
+        db.refresh(link)
+        return link
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_link(
         db: Session,
         link_id: int
@@ -66,16 +91,8 @@ def create_link(
     try:
         link_repo.save(db, link)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.LINK,
-            affected_entity_id=link.id
-        )
-        db.commit()
-        db.refresh(link)
-        return link
+        _register_link_log(db, current_user.id, ActionType.CREATE, link.id)
+        return _commit_and_refresh_link(db, link)
 
     except Exception:
         db.rollback()
@@ -102,16 +119,8 @@ def update_link(
     try:
         link_repo.save(db, link)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.LINK,
-            affected_entity_id=link.id
-        )
-        db.commit()
-        db.refresh(link)
-        return link
+        _register_link_log(db, current_user.id, ActionType.UPDATE, link.id)
+        return _commit_and_refresh_link(db, link)
     except Exception:
         db.rollback()
         raise
@@ -128,13 +137,7 @@ def delete_link(
     try:
         link_repo.delete(db, link)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.LINK,
-            affected_entity_id=link.id
-        )
+        _register_link_log(db, current_user.id, ActionType.DELETE, link.id)
         db.commit()
         return f"El link del proyecto {name_project} ha sido borrado correctamente"
     except Exception:

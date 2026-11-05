@@ -10,6 +10,34 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_environment_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        environment_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.ENVIRONMENT,
+        affected_entity_id=environment_id,
+    )
+
+
+def _commit_and_refresh_environment(
+        db: Session,
+        environment: Environment,
+) -> Environment:
+    try:
+        db.commit()
+        db.refresh(environment)
+        return environment
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_environment(
         db: Session,
         environment_id: int
@@ -67,16 +95,10 @@ def create_environment(
     try:
         environment_repo.save(db, environment)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.ENVIRONMENT,
-            affected_entity_id=environment.id
+        _register_environment_log(
+            db, current_user.id, ActionType.CREATE, environment.id
         )
-        db.commit()
-        db.refresh(environment)
-        return environment
+        return _commit_and_refresh_environment(db, environment)
 
     except Exception:
         db.rollback()
@@ -102,16 +124,10 @@ def update_environment(
 
     try:
         environment_repo.save(db, environment)
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.ENVIRONMENT,
-            affected_entity_id=environment.id
+        _register_environment_log(
+            db, current_user.id, ActionType.UPDATE, environment.id
         )
-        db.commit()
-        db.refresh(environment)
-        return environment
+        return _commit_and_refresh_environment(db, environment)
 
     except Exception:
         db.rollback()
@@ -129,12 +145,8 @@ def delete_environment(
     try:
         environment_repo.delete(db, environment)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.ENVIRONMENT,
-            affected_entity_id=environment.id
+        _register_environment_log(
+            db, current_user.id, ActionType.DELETE, environment.id
         )
         db.commit()
         return f"El entorno del proyecto {name_project} ha sido borrado correctamente"

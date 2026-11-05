@@ -10,263 +10,302 @@ from app.schemas.client_schema import (
     ClientUpdate,
     PaginatedClientRead,
 )
-from app.security.models.log_model import EntityType, ActionType
+from app.security.models.log_model import ActionType, EntityType
 from app.security.models.user_model import User
 from app.security.services import log_service
 
 
-def get_client(
-        db: Session,
-        client_id: int
-) -> Client:
-    client = client_repo.find_by_id(
-        db,
-        client_id
+def _register_client_log(
+    db: Session,
+    user_id: int,
+    action: ActionType,
+    client_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.CLIENT,
+        affected_entity_id=client_id,
     )
+
+
+def _save_client_with_log(
+    db: Session,
+    client: Client,
+    user_id: int,
+    action: ActionType,
+) -> Client:
+    try:
+        client_repo.save(db, client)
+        _register_client_log(db, user_id, action, client.id)
+        return _commit_and_refresh_client(db, client)
+    except Exception:
+        db.rollback()
+        raise
+
+
+def _commit_and_refresh_client(db: Session, client: Client) -> Client:
+    try:
+        db.commit()
+        db.refresh(client)
+        return client
+    except Exception:
+        db.rollback()
+        raise
+
+
+def _validate_unique_name(
+    db: Session,
+    client: Client,
+    name: str | None,
+) -> None:
+    if not name:
+        return
+
+    existing_client = client_repo.find_by_name(db, name)
+    if existing_client is None or existing_client.id == client.id:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Ya existe un cliente con ese nombre",
+    )
+
+
+def _normalize_and_validate_cif(
+    db: Session,
+    client: Client,
+    data: ClientUpdate,
+) -> None:
+    if data.cif == "":
+        data.cif = None
+
+    if data.cif is None:
+        return
+
+    existing_client = client_repo.find_by_cif(db, data.cif)
+    if existing_client is None or existing_client.id == client.id:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Ya existe un cliente con ese cif",
+    )
+
+
+def _apply_client_updates(client: Client, data: ClientUpdate) -> None:
+    updates = data.model_dump(exclude_unset=True)
+    for field, value in updates.items():
+        setattr(client, field, value)
+
+
+def _set_client_active_status(
+    db: Session,
+    client_id: int,
+    current_user: User,
+    is_active: bool,
+) -> Client:
+    client = get_client(db, client_id, current_user.id)
+    client.is_active = is_active
+    return _save_client_with_log(
+        db,
+        client,
+        current_user.id,
+        ActionType.UPDATE,
+    )
+
+
+def get_client(
+    db: Session,
+    client_id: int,
+    favorite_user_id: int | None = None,
+) -> Client:
+    client = client_repo.find_by_id(db, client_id)
     if client is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cliente no encontrado"
+            detail="Cliente no encontrado",
         )
+
+    if favorite_user_id is not None:
+        client_repo.set_favorite_status(db, client, favorite_user_id)
+
     return client
 
 
 def get_clients(
-        db: Session,
-        offset: int,
-        limit: int,
-        search: str | None = None,
+    db: Session,
+    offset: int,
+    limit: int,
+    search: str | None = None,
+    favorite_user_id: int | None = None,
 ) -> PaginatedClientRead:
-    return client_repo.find_all(db, offset, limit, search)
+    return client_repo.find_all(
+        db,
+        offset,
+        limit,
+        search,
+        favorite_user_id=favorite_user_id,
+    )
 
 
 def get_clients_by_user(
-        db: Session,
-        user_id: int,
-        offset: int,
-        limit: int,
-        search: str | None = None,
+    db: Session,
+    user_id: int,
+    offset: int,
+    limit: int,
+    search: str | None = None,
 ) -> PaginatedClientRead:
     return client_repo.find_all_by_user(db, user_id, offset, limit, search)
 
 
 def get_clients_light(
-        db: Session,
+    db: Session,
+    user_id: int,
 ) -> list[ClientLightRead]:
-    return client_repo.find_all_light(db)
+    return client_repo.find_all_light(db, user_id)
 
 
 def get_clients_light_by_user(
-        db: Session,
-        user_id: int,
+    db: Session,
+    user_id: int,
 ) -> list[ClientLightRead]:
     return client_repo.find_all_light_by_user(db, user_id)
 
 
 def get_archived_clients(
-        db: Session,
-        offset: int,
-        limit: int,
-        search: str | None = None,
+    db: Session,
+    offset: int,
+    limit: int,
+    search: str | None = None,
+    favorite_user_id: int | None = None,
 ) -> PaginatedClientRead:
-    return client_repo.find_all_archived(db, offset, limit, search)
+    return client_repo.find_all_archived(
+        db,
+        offset,
+        limit,
+        search,
+        favorite_user_id=favorite_user_id,
+    )
 
 
 def get_archived_clients_by_user(
-        db: Session,
-        user_id: int,
-        offset: int,
-        limit: int,
-        search: str | None = None,
+    db: Session,
+    user_id: int,
+    offset: int,
+    limit: int,
+    search: str | None = None,
 ) -> PaginatedClientRead:
     return client_repo.find_all_archived_by_user(
-        db, user_id, offset, limit, search
+        db,
+        user_id,
+        offset,
+        limit,
+        search,
     )
 
 
 def create_client(
-        db: Session,
-        data: ClientCreate,
-        current_user: User
+    db: Session,
+    data: ClientCreate,
+    current_user: User,
 ) -> Client:
-    client = Client(
-        name=data.name,
-        cif=data.cif,
-        phone=data.phone
+    client = Client(name=data.name, cif=data.cif, phone=data.phone)
+    return _save_client_with_log(
+        db,
+        client,
+        current_user.id,
+        ActionType.CREATE,
     )
-    try:
-        client_repo.save(db, client)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.CLIENT,
-            affected_entity_id=client.id
-        )
-
-        db.commit()
-        db.refresh(client)
-        return client
-    except Exception:
-        db.rollback()
-        raise
 
 
 def update_client(
-        db: Session,
-        client_id: int,
-        data: ClientUpdate,
-        current_user: User
+    db: Session,
+    client_id: int,
+    data: ClientUpdate,
+    current_user: User,
 ) -> Client:
-    client = get_client(
-        db, client_id
+    client = get_client(db, client_id, current_user.id)
+    _validate_unique_name(db, client, data.name)
+    _normalize_and_validate_cif(db, client, data)
+    _apply_client_updates(client, data)
+
+    return _save_client_with_log(
+        db,
+        client,
+        current_user.id,
+        ActionType.UPDATE,
     )
-
-    if data.name:
-        exists = client_repo.find_by_name(db, data.name)
-
-        if exists and exists.id != client.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Ya existe un cliente con ese nombre",
-            )
-    if data.cif == "":
-        data.cif = None
-
-    if data.cif is not None:
-        exists = client_repo.find_by_cif(db, data.cif)
-
-        if exists and exists.id != client.id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Ya existe un cliente con ese cif",
-            )
-
-    updates = data.model_dump(
-        exclude_unset=True
-    )
-
-    for field, value in updates.items():
-        setattr(client, field, value)
-
-    try:
-        client_repo.save(db, client)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.CLIENT,
-            affected_entity_id=client.id
-        )
-        db.commit()
-        db.refresh(client)
-        return client
-    except Exception:
-        db.rollback()
-        raise
 
 
 def delete_client(
-        db: Session,
-        client_id: int,
-        current_user: User
+    db: Session,
+    client_id: int,
+    current_user: User,
 ) -> str:
-    client = get_client(db, client_id)
+    client = get_client(db, client_id, current_user.id)
     client_name = client.name
+
     try:
         client_repo.delete(db, client)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.CLIENT,
-            affected_entity_id=client.id
+        _register_client_log(
+            db,
+            current_user.id,
+            ActionType.DELETE,
+            client.id,
         )
         db.commit()
         return f"El cliente '{client_name}' ha sido borrado correctamente"
-
     except Exception:
         db.rollback()
         raise
 
 
 def archive_client(
-        db: Session,
-        client_id: int,
-        current_user: User
+    db: Session,
+    client_id: int,
+    current_user: User,
 ) -> Client:
-    client = get_client(db, client_id)
-
-    client.is_active = False
-
-    try:
-        client_repo.save(db, client)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.CLIENT,
-            affected_entity_id=client.id
-        )
-        db.commit()
-        db.refresh(client)
-        return client
-    except Exception:
-        db.rollback()
-        raise
+    return _set_client_active_status(
+        db,
+        client_id,
+        current_user,
+        is_active=False,
+    )
 
 
 def restore_client(
-        db: Session,
-        client_id: int,
-        current_user: User
+    db: Session,
+    client_id: int,
+    current_user: User,
 ) -> Client:
-    client = get_client(db, client_id)
-
-    client.is_active = True
-
-    try:
-        client_repo.save(db, client)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.CLIENT,
-            affected_entity_id=client.id
-        )
-        db.commit()
-        db.refresh(client)
-        return client
-    except Exception:
-        db.rollback()
-        raise
+    return _set_client_active_status(
+        db,
+        client_id,
+        current_user,
+        is_active=True,
+    )
 
 
 def get_active_client(db: Session, client_id: int) -> Client:
     client = get_client(db, client_id)
+    if client.is_active:
+        return client
 
-    if not client.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="El cliente está archivado",
-        )
-
-    return client
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="El cliente está archivado",
+    )
 
 
 def favorite_client(
-        db: Session,
-        client_id: int,
-        current_user: User,
+    db: Session,
+    client_id: int,
+    current_user: User,
 ) -> Client:
-    client = get_client(db, client_id)
+    client = get_client(db, client_id, current_user.id)
     favorite = db.get(UserFavoriteClient, (current_user.id, client.id))
-
     if favorite is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -275,48 +314,18 @@ def favorite_client(
 
     db.add(UserFavoriteClient(user_id=current_user.id, client_id=client.id))
     client.is_favorite = True
-
-    try:
-        db.commit()
-        db.refresh(client)
-        return client
-    except Exception:
-        db.rollback()
-        raise
+    return _commit_and_refresh_client(db, client)
 
 
 def unfavorite_client(
-        db: Session,
-        client_id: int,
-        current_user: User,
+    db: Session,
+    client_id: int,
+    current_user: User,
 ) -> Client:
-    client = get_client(db, client_id)
+    client = get_client(db, client_id, current_user.id)
     favorite = db.get(UserFavoriteClient, (current_user.id, client.id))
-
     if favorite is not None:
         db.delete(favorite)
 
     client.is_favorite = False
-
-    try:
-        db.commit()
-        db.refresh(client)
-        return client
-    except Exception:
-        db.rollback()
-        raise
-
-
-def create_client_in_project_service(
-        db: Session,
-        data: ClientCreate,
-) -> Client:
-    client = Client(
-        name=data.name,
-        cif=data.cif,
-        phone=data.phone,
-    )
-
-    db.add(client)
-    db.flush()
-    return client
+    return _commit_and_refresh_client(db, client)

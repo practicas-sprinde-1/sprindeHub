@@ -10,6 +10,31 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_command_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        command_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.COMMAND,
+        affected_entity_id=command_id,
+    )
+
+
+def _commit_and_refresh_command(db: Session, command: Command) -> Command:
+    try:
+        db.commit()
+        db.refresh(command)
+        return command
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_command(
         db: Session,
         command_id: int
@@ -67,16 +92,8 @@ def create_command(
     try:
         command_repo.save(db, command)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.COMMAND,
-            affected_entity_id=command.id
-        )
-        db.commit()
-        db.refresh(command)
-        return command
+        _register_command_log(db, current_user.id, ActionType.CREATE, command.id)
+        return _commit_and_refresh_command(db, command)
     except Exception:
         db.rollback()
         raise
@@ -102,16 +119,8 @@ def update_command(
     try:
         command_repo.save(db, command)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.COMMAND,
-            affected_entity_id=command.id
-        )
-        db.commit()
-        db.refresh(command)
-        return command
+        _register_command_log(db, current_user.id, ActionType.UPDATE, command.id)
+        return _commit_and_refresh_command(db, command)
     except Exception:
         db.rollback()
         raise
@@ -128,13 +137,7 @@ def delete_command(
     try:
         command_repo.delete(db, command)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.COMMAND,
-            affected_entity_id=command.id
-        )
+        _register_command_log(db, current_user.id, ActionType.DELETE, command.id)
         db.commit()
         return f"El comando del proyecto {name_project} ha sido borrado correctamente"
     except Exception:

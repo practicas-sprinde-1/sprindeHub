@@ -58,7 +58,7 @@ def revoke_user_favorite_client(db: Session, user_id: int, client_id: int) -> st
     if user_favorite_client_repo.find_by_ids(db, user.id, client.id) is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"El cliente {client.name} ya está en favoritos.",
+            detail=f"El cliente {client.name} no está en favoritos.",
         )
     client_service.unfavorite_client(db, client.id, user)
     return f"El cliente {client.name} eliminado de favoritos correctamente."

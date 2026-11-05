@@ -10,6 +10,31 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_note_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        note_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.NOTE,
+        affected_entity_id=note_id,
+    )
+
+
+def _commit_and_refresh_note(db: Session, note: Note) -> Note:
+    try:
+        db.commit()
+        db.refresh(note)
+        return note
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_note(
         db: Session,
         note_id: int
@@ -66,16 +91,8 @@ def create_note(
     try:
         note_repo.save(db, note)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.NOTE,
-            affected_entity_id=note.id
-        )
-        db.commit()
-        db.refresh(note)
-        return note
+        _register_note_log(db, current_user.id, ActionType.CREATE, note.id)
+        return _commit_and_refresh_note(db, note)
     except Exception:
         db.rollback()
         raise
@@ -101,16 +118,8 @@ def update_note(
     try:
         note_repo.save(db, note)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.NOTE,
-            affected_entity_id=note.id
-        )
-        db.commit()
-        db.refresh(note)
-        return note
+        _register_note_log(db, current_user.id, ActionType.UPDATE, note.id)
+        return _commit_and_refresh_note(db, note)
     except Exception:
         db.rollback()
         raise
@@ -127,13 +136,7 @@ def delete_note(
     try:
         note_repo.delete(db, note)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.NOTE,
-            affected_entity_id=note.id
-        )
+        _register_note_log(db, current_user.id, ActionType.DELETE, note.id)
         db.commit()
         return f"La nota del proyecto {description_project} ha sido borrada correctamente"
 

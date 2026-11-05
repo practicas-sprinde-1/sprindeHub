@@ -26,9 +26,154 @@ from app.security.services import log_service
 from app.services import client_service
 
 
+def _register_project_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        project_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.PROJECT,
+        affected_entity_id=project_id,
+    )
+
+
+
+def _save_project_with_log(
+        db: Session,
+        project: Project,
+        user_id: int,
+        action: ActionType,
+) -> Project:
+    try:
+        project_repo.save(db, project)
+        _register_project_log(db, user_id, action, project.id)
+        db.commit()
+        db.refresh(project)
+        return project
+    except Exception:
+        db.rollback()
+        raise
+
+def _commit_and_refresh_project(
+        db: Session,
+        project: Project,
+) -> Project:
+    try:
+        db.commit()
+        db.refresh(project)
+        return project
+    except Exception:
+        db.rollback()
+        raise
+
+
+def _set_project_active_status(
+        db: Session,
+        project_id: int,
+        current_user: User,
+        is_active: bool,
+) -> Project:
+    project = get_project(db, project_id, current_user.id)
+    project.is_active = is_active
+    return _save_project_with_log(
+        db,
+        project,
+        current_user.id,
+        ActionType.UPDATE,
+    )
+
+
+def _find_or_create_client(
+        db: Session,
+        data: ProjectFullCreate,
+        current_user: User,
+) -> int | None:
+    if data.client_id is not None:
+        return client_service.get_active_client(db, data.client_id).id
+
+    if data.client is None:
+        return None
+
+    client = Client(
+        name=data.client.name,
+        cif=data.client.cif,
+        phone=data.client.phone,
+    )
+    db.add(client)
+    db.flush()
+    db.add(UserClient(user_id=current_user.id, client_id=client.id))
+
+    log_service.register_log(
+        db=db,
+        user_id=current_user.id,
+        action=ActionType.CREATE,
+        affected_entity=EntityType.CLIENT,
+        affected_entity_id=client.id,
+    )
+    return client.id
+
+
+def _add_project_children(
+        db: Session,
+        project_id: int,
+        data: ProjectFullCreate,
+) -> None:
+    for item in data.environments:
+        db.add(Environment(
+            project_id=project_id,
+            type=item.type,
+            url=item.url,
+        ))
+
+    for item in data.repositories:
+        db.add(Repository(
+            project_id=project_id,
+            type=item.type,
+            url=item.url,
+        ))
+
+    for item in data.services:
+        db.add(Service(
+            project_id=project_id,
+            name=item.name,
+        ))
+
+    for item in data.domains:
+        db.add(Domain(
+            project_id=project_id,
+            url=item.url,
+        ))
+
+    for item in data.commands:
+        db.add(Command(
+            project_id=project_id,
+            name=item.name,
+            instruction=item.instruction,
+        ))
+
+    for item in data.links:
+        db.add(Link(
+            project_id=project_id,
+            title=item.title,
+            url=item.url,
+        ))
+
+    for item in data.notes:
+        db.add(Note(
+            project_id=project_id,
+            description=item.description,
+            content=item.content,
+        ))
+
+
 def get_project(
         db: Session,
-        project_id: int
+        project_id: int,
+        favorite_user_id: int | None = None,
 ) -> Project:
     project = project_repo.find_by_id(db, project_id)
     if project is None:
@@ -36,6 +181,8 @@ def get_project(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Proyecto no encontrado"
         )
+    if favorite_user_id is not None:
+        project_repo.set_favorite_status(db, project, favorite_user_id)
     return project
 
 
@@ -43,11 +190,12 @@ def get_projects_by_id_client(
         db: Session,
         client_id: int,
         offset: int,
-        limit: int
-
+        limit: int,
+        favorite_user_id: int,
 ) -> PaginatedProjectTableRead:
-    projects = project_repo.find_by_client_id(db, client_id, offset, limit)
-    return projects
+    return project_repo.find_by_client_id(
+        db, client_id, offset, limit, favorite_user_id
+    )
 
 
 def get_projects(
@@ -55,8 +203,11 @@ def get_projects(
         offset: int,
         limit: int,
         search: str | None = None,
+        favorite_user_id: int | None = None,
 ) -> PaginatedProjectTableRead:
-    return project_repo.find_all(db, offset, limit, search)
+    return project_repo.find_all(
+        db, offset, limit, search, favorite_user_id=favorite_user_id
+    )
 
 
 def get_projects_by_users(
@@ -71,8 +222,9 @@ def get_projects_by_users(
 
 def get_projects_light(
         db: Session,
+        user_id: int,
 ) -> list[ProjectLightRead]:
-    return project_repo.find_all_light(db)
+    return project_repo.find_all_light(db, user_id)
 
 
 def get_projects_light_by_users(
@@ -87,7 +239,7 @@ def favorite_project(
         project_id: int,
         current_user: User,
 ) -> Project:
-    project = get_project(db, project_id)
+    project = get_project(db, project_id, current_user.id)
     favorite = db.get(UserFavoriteProject, (current_user.id, project.id))
 
     if favorite is not None:
@@ -100,14 +252,7 @@ def favorite_project(
         UserFavoriteProject(user_id=current_user.id, project_id=project.id)
     )
     project.is_favorite = True
-
-    try:
-        db.commit()
-        db.refresh(project)
-        return project
-    except Exception:
-        db.rollback()
-        raise
+    return _commit_and_refresh_project(db, project)
 
 
 def unfavorite_project(
@@ -115,21 +260,14 @@ def unfavorite_project(
         project_id: int,
         current_user: User,
 ) -> Project:
-    project = get_project(db, project_id)
+    project = get_project(db, project_id, current_user.id)
     favorite = db.get(UserFavoriteProject, (current_user.id, project.id))
 
     if favorite is not None:
         db.delete(favorite)
 
     project.is_favorite = False
-
-    try:
-        db.commit()
-        db.refresh(project)
-        return project
-    except Exception:
-        db.rollback()
-        raise
+    return _commit_and_refresh_project(db, project)
 
 
 def get_archived_projects(
@@ -137,8 +275,11 @@ def get_archived_projects(
         offset: int,
         limit: int,
         search: str | None = None,
+    favorite_user_id: int | None = None,
 ) -> PaginatedProjectTableRead:
-    return project_repo.find_all_archived(db, offset, limit, search)
+    return project_repo.find_all_archived(
+        db, offset, limit, search, favorite_user_id=favorite_user_id
+    )
 
 
 def get_archived_projects_by_users(
@@ -156,7 +297,7 @@ def get_archived_projects_by_users(
 def create_project(
         db: Session,
         data: ProjectCreate,
-        current_user: User
+        current_user: User,
 ) -> Project:
     if data.client_id is not None:
         client_service.get_active_client(db, data.client_id)
@@ -167,68 +308,43 @@ def create_project(
         client_id=data.client_id,
     )
 
-    try:
-        project_repo.save(db, project)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.PROJECT,
-            affected_entity_id=project.id
-        )
-        db.commit()
-        db.refresh(project)
-        return project
-    except Exception:
-        db.rollback()
-        raise
+    return _save_project_with_log(
+        db,
+        project,
+        current_user.id,
+        ActionType.CREATE,
+    )
 
 
 def update_project(
         db: Session,
         project_id: int,
         data: ProjectUpdate,
-        current_user: User
+        current_user: User,
 ) -> Project:
-    project = get_project(db, project_id)
+    project = get_project(db, project_id, current_user.id)
+    updates = data.model_dump(exclude_unset=True)
 
-
-
-    updates = data.model_dump(
-        exclude_unset=True
-    )
     if updates.get("client_id") is not None:
         client_service.get_active_client(db, updates["client_id"])
 
     for field, value in updates.items():
         setattr(project, field, value)
 
-    try:
-        project_repo.save(db, project)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.PROJECT,
-            affected_entity_id=project.id
-        )
-        db.commit()
-        db.refresh(project)
-        return project
-    except Exception:
-
-        db.rollback()
-        raise
+    return _save_project_with_log(
+        db,
+        project,
+        current_user.id,
+        ActionType.UPDATE,
+    )
 
 
 def delete_project(
         db: Session,
         project_id: int,
-        current_user: User
+        current_user: User,
 ) -> str:
-    project = get_project(db, project_id)
+    project = get_project(db, project_id, current_user.id)
 
     has_dependencies = any((
         project.environments,
@@ -237,14 +353,15 @@ def delete_project(
         project.links,
         project.services,
         project.commands,
-        project.notes
+        project.notes,
     ))
 
     if has_dependencies:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
-                "El proyecto aún contiene dependencias activas. Borra las depencencias primero."
+                "El proyecto aún contiene dependencias activas. "
+                "Borra las depencencias primero."
                 "Puedes archivar el proyecto en su lugar."
             ),
         )
@@ -255,17 +372,23 @@ def delete_project(
     try:
         project_repo.delete(db, project)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.PROJECT,
-            affected_entity_id=project.id
+        _register_project_log(
+            db,
+            current_user.id,
+            ActionType.DELETE,
+            project.id,
         )
         db.commit()
+
         if client_name is None:
-            return f"El proyecto huérfano {project_name} ha sido borrado correctamente"
-        return f"El proyecto {project_name} del cliente {client_name} ha sido borrado correctamente"
+            return (
+                f"El proyecto huérfano {project_name} "
+                "ha sido borrado correctamente"
+            )
+        return (
+            f"El proyecto {project_name} del cliente {client_name} "
+            "ha sido borrado correctamente"
+        )
     except Exception:
         db.rollback()
         raise
@@ -274,55 +397,27 @@ def delete_project(
 def restore_project(
         db: Session,
         project_id: int,
-        current_user: User
+        current_user: User,
 ) -> Project:
-    project = get_project(db, project_id)
-
-    project.is_active = True
-
-    try:
-        project_repo.save(db, project)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.PROJECT,
-            affected_entity_id=project.id
-        )
-        db.commit()
-        db.refresh(project)
-        return project
-    except Exception:
-        db.rollback()
-        raise
+    return _set_project_active_status(
+        db,
+        project_id,
+        current_user,
+        is_active=True,
+    )
 
 
 def archive_project(
         db: Session,
         project_id: int,
-        current_user: User
+        current_user: User,
 ) -> Project:
-    project = get_project(db, project_id)
-
-    project.is_active = False
-
-    try:
-        project_repo.save(db, project)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.PROJECT,
-            affected_entity_id=project.id
-        )
-        db.commit()
-        db.refresh(project)
-        return project
-    except Exception:
-        db.rollback()
-        raise
+    return _set_project_active_status(
+        db,
+        project_id,
+        current_user,
+        is_active=False,
+    )
 
 
 def get_active_project(
@@ -345,34 +440,7 @@ def create_full_project(
         current_user: User,
 ) -> Project:
     try:
-        client_id = data.client_id
-        if client_id is not None:
-            client = client_service.get_active_client(db, client_id)
-            client_id = client.id
-        elif data.client is not None:
-            client = Client(
-                name=data.client.name,
-                cif=data.client.cif,
-                phone=data.client.phone,
-            )
-            db.add(client)
-            db.flush()
-
-            user_client = UserClient(
-                user_id=current_user.id,
-                client_id=client.id
-            )
-
-            db.add(user_client)
-
-            log_service.register_log(
-                db=db,
-                user_id=current_user.id,
-                action=ActionType.CREATE,
-                affected_entity=EntityType.CLIENT,
-                affected_entity_id=client.id,
-            )
-            client_id = client.id
+        client_id = _find_or_create_client(db, data, current_user)
 
         project = Project(
             name=data.name,
@@ -384,72 +452,15 @@ def create_full_project(
         db.add(project)
         db.flush()
 
-        for item in data.environments:
-            environment = Environment(
-                project_id=project.id,
-                type=item.type,
-                url=item.url,
-            )
-            db.add(environment)
-
-        for item in data.repositories:
-            repository = Repository(
-                project_id=project.id,
-                type=item.type,
-                url=item.url,
-            )
-            db.add(repository)
-
-        for item in data.services:
-            service = Service(
-                project_id=project.id,
-                name=item.name,
-            )
-            db.add(service)
-
-        for item in data.domains:
-            domain = Domain(
-                project_id=project.id,
-                url=item.url,
-            )
-            db.add(domain)
-
-        for item in data.commands:
-            command = Command(
-                project_id=project.id,
-                name=item.name,
-                instruction=item.instruction,
-            )
-            db.add(command)
-
-        for item in data.links:
-            link = Link(
-                project_id=project.id,
-                title=item.title,
-                url=item.url,
-            )
-            db.add(link)
-
-        for item in data.notes:
-            note = Note(
-                project_id=project.id,
-                description=item.description,
-                content=item.content,
-            )
-            db.add(note)
-
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.PROJECT,
-            affected_entity_id=project.id,
+        _add_project_children(db, project.id, data)
+        _register_project_log(
+            db,
+            current_user.id,
+            ActionType.CREATE,
+            project.id,
         )
 
-        db.commit()
-        db.refresh(project)
-        return project
-
+        return _commit_and_refresh_project(db, project)
     except Exception:
         db.rollback()
         raise
