@@ -8,60 +8,54 @@ def find_all(
         db: Session,
         offset: int = 0,
         limit: int = 20,
-
 ) -> list[UserClient]:
     statement = (
         select(UserClient)
         .offset(offset)
         .limit(limit)
     )
-    return list(
-        db.scalars(statement).all()
-    )
+
+    return list(db.scalars(statement).all())
 
 
 def find_by_user_id(
         db: Session,
         user_id: int,
         offset: int = 0,
-        limit: int = 20
-
+        limit: int = 20,
 ) -> list[UserClient]:
     statement = (
         select(UserClient)
         .where(UserClient.user_id == user_id)
+        .order_by(UserClient.client_id)
         .offset(offset)
         .limit(limit)
-        .order_by(UserClient.client_id)
     )
-    return list(
-        db.scalars(statement).all()
-    )
+
+    return list(db.scalars(statement).all())
 
 
 def find_by_client_id(
         db: Session,
         client_id: int,
         offset: int = 0,
-        limit: int = 20
-
+        limit: int = 20,
 ) -> list[UserClient]:
     statement = (
         select(UserClient)
         .where(UserClient.client_id == client_id)
+        .order_by(UserClient.user_id)
         .offset(offset)
         .limit(limit)
-        .order_by(UserClient.user_id)
     )
-    return list(
-        db.scalars(statement).all()
-    )
+
+    return list(db.scalars(statement).all())
 
 
 def find_by_ids(
         db: Session,
         user_id: int,
-        client_id: int
+        client_id: int,
 ) -> UserClient | None:
     statement = (
         select(UserClient)
@@ -74,7 +68,6 @@ def find_by_ids(
 def save(
         db: Session,
         user_client: UserClient,
-
 ) -> UserClient:
     db.add(user_client)
     db.commit()
@@ -84,7 +77,7 @@ def save(
 
 def delete(
         db: Session,
-        user_client: UserClient
+        user_client: UserClient,
 ) -> None:
     db.delete(user_client)
     db.commit()

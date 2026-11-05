@@ -1,8 +1,26 @@
 from sqlalchemy import String, cast, or_, select
 from sqlalchemy.orm import Session
+from sqlalchemy.sql import Select
 
 from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
+
+
+def _filter_by_search(
+        statement,
+        search: str | None,
+):
+    if search is None:
+        return statement
+
+    pattern = f"%{search.strip()}%"
+    return statement.where(
+        or_(
+            User.email.ilike(pattern),
+            User.username.ilike(pattern),
+            cast(User.role, String).ilike(pattern),
+        )
+    )
 
 
 def find_all(
@@ -10,45 +28,33 @@ def find_all(
         offset: int = 0,
         limit: int = 20,
         search: str | None = None,
-
 ) -> list[User]:
     statement = select(User).where(User.is_active.is_(True))
-
-    if search is not None:
-        pattern = f"%{search.strip()}%"
-        statement = statement.where(or_(
-            User.email.ilike(pattern),
-            User.username.ilike(pattern),
-            cast(User.role, String).ilike(pattern),
-        ))
-
+    statement = _filter_by_search(statement, search)
     statement = (
         statement
+        .order_by(User.id)
         .offset(offset)
         .limit(limit)
-        .order_by(User.id)
     )
-    return list(
-        db.scalars(statement).all()
-    )
+
+    return list(db.scalars(statement).all())
 
 
 def find_all_inactive(
         db: Session,
         offset: int = 0,
         limit: int = 20,
-
 ) -> list[User]:
     statement = (
         select(User)
         .where(User.is_active.is_(False))
+        .order_by(User.id)
         .offset(offset)
         .limit(limit)
-        .order_by(User.id)
     )
-    return list(
-        db.scalars(statement).all()
-    )
+
+    return list(db.scalars(statement).all())
 
 
 def find_by_id(
@@ -62,10 +68,8 @@ def find_by_email(
         db: Session,
         email: str,
 ) -> User | None:
-    statement = (
-        select(User)
-        .where(User.email == email)
-    )
+    statement = select(User).where(User.email == email)
+
     return db.scalar(statement)
 
 
@@ -73,10 +77,8 @@ def find_by_username(
         db: Session,
         username: str,
 ) -> User | None:
-    statement = (
-        select(User)
-        .where(User.username == username)
-    )
+    statement = select(User).where(User.username == username)
+
     return db.scalar(statement)
 
 
@@ -84,15 +86,15 @@ def find_by_client_id(
         db: Session,
         client_id: int,
         offset: int = 0,
-        limit: int = 20
+        limit: int = 20,
 ) -> list[User]:
     statement = (
         select(User)
         .join(UserClient, UserClient.user_id == User.id)
         .where(UserClient.client_id == client_id, User.is_active.is_(True))
+        .order_by(User.id)
         .offset(offset)
         .limit(limit)
-        .order_by(User.id)
     )
 
     return list(db.scalars(statement).all())
@@ -101,7 +103,6 @@ def find_by_client_id(
 def save(
         db: Session,
         user: User,
-
 ) -> User:
     db.add(user)
     db.commit()
@@ -111,7 +112,7 @@ def save(
 
 def delete(
         db: Session,
-        user: User
+        user: User,
 ) -> None:
     db.delete(user)
     db.commit()

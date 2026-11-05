@@ -9,6 +9,8 @@ from app.database.base_class import Base
 
 if TYPE_CHECKING:
     from app.security.models.user_client_model import UserClient
+    from app.models.user_favorite_client_model import UserFavoriteClient
+    from app.models.user_favorite_project_model import UserFavoriteProject
 
 
 # Elimina la etiqueta de la zona horaria con usando el .replace
@@ -73,3 +75,15 @@ class User(Base):
     )
 
     user_clients: Mapped[list["UserClient"]] = relationship(back_populates="user")
+
+    favorite_clients: Mapped[list["UserFavoriteClient"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+    favorite_projects: Mapped[list["UserFavoriteProject"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
