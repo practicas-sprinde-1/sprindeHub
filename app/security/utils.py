@@ -5,64 +5,61 @@ from pwdlib import PasswordHash
 
 from app.core.config import settings
 
-# Encriptador de password
 password_hasher = PasswordHash.recommended()
 
 
-# Recibe una password en texto plano y devuelve la password encriptada
 def hash_password(password: str) -> str:
     return password_hasher.hash(password)
 
 
-# Comprueba que la contraseña que se recibe por parámetro sea igual que la encriptada en la BBDD
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return password_hasher.verify(plain_password, hashed_password)
 
 
-# Crea un token de acceso recibiendo por parametro el user_id
 def create_access_token(user_id: int) -> str:
-    # Calcula el expires sumando la hora que se registra con el tiempo que he configurado en .ENV
-    now = datetime.now(timezone.utc)
-    expires = now + timedelta(minutes=settings.access_token_minutes)
-
-    # Encapsula los datos del token. Quién(subject),cuándo se creó(issuedAt) y cuándo expira(Expired).
-    token_data = {
-        "sub": str(user_id),
-        "iat": now,
-        "exp": expires,
-        "iss": settings.jwt_issuer,
-        "aud": settings.jwt_audience,
-        "token_type": "access",
-    }
-
-    # Se fabrica el jwt firmándolo con la password de .env y usando tambien el algoritmo definido en .env
-    return jwt.encode(
-        token_data,
-        settings.jwt_secret_key,
-        algorithm=settings.jwt_algorithm,
+    issued_at = datetime.now(timezone.utc)
+    #Uso de timedelta para añadir sólo los minutos a la fecha creada
+    expires_at = issued_at + timedelta(minutes=settings.access_token_minutes)
+    return _encode_token(
+        user_id=user_id,
+        issued_at=issued_at,
+        expires_at=expires_at,
+        token_type="access",
     )
 
 
 def create_refresh_token(user_id: int) -> str:
-    now = datetime.now(timezone.utc)
-    expires = now + timedelta(days=settings.refresh_token_days)
+    issued_at = datetime.now(timezone.utc)
+    expires_at = issued_at + timedelta(days=settings.refresh_token_days)
+    return _encode_token(
+        user_id=user_id,
+        issued_at=issued_at,
+        expires_at=expires_at,
+        token_type="refresh",
+    )
 
-    token_data = {
+
+def _encode_token(
+    user_id: int,
+    issued_at: datetime,
+    expires_at: datetime,
+    token_type: str,
+) -> str:
+    payload = {
         "sub": str(user_id),
-        "iat": now,
-        "exp": expires,
+        "iat": issued_at,
+        "exp": expires_at,
         "iss": settings.jwt_issuer,
         "aud": settings.jwt_audience,
-        "token_type": "refresh",
+        "token_type": token_type,
     }
     return jwt.encode(
-        token_data,
+        payload,
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
     )
 
 
-# Recibe un token y comprueba si es válido
 def decode_access_token(token: str) -> dict:
     return jwt.decode(
         token,

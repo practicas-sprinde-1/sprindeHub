@@ -15,6 +15,7 @@ from app.models.user_favorite_client_model import UserFavoriteClient
 from app.models.user_favorite_project_model import UserFavoriteProject
 from app.security.models.user_model import User
 
+# __all__ evita advertencias de "importación sin uso" en los linters y re-exporta los modelos.
 __all__ = (
     "Client",
     "Command",

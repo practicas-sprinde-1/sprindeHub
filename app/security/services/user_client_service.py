@@ -27,9 +27,7 @@ def get_user_clients(
         offset: int,
         limit: int
 ) -> list[UserClient]:
-    user_clients = user_client_repo.find_all(db, offset, limit, )
-
-    return user_clients
+    return user_client_repo.find_all(db, offset, limit)
 
 
 def get_user_clients_by_client_id(
@@ -40,8 +38,7 @@ def get_user_clients_by_client_id(
 
 ) -> list[UserClient]:
     client_service.get_client(db, client_id)
-    user_clients = user_client_repo.find_by_client_id(db, client_id, offset, limit)
-    return user_clients
+    return user_client_repo.find_by_client_id(db, client_id, offset, limit)
 
 
 def get_user_clients_by_user_id(
@@ -52,8 +49,7 @@ def get_user_clients_by_user_id(
 
 ) -> list[UserClient]:
     user_service.get_user(db, user_id)
-    user_clients = user_client_repo.find_by_user_id(db, user_id, offset, limit)
-    return user_clients
+    return user_client_repo.find_by_user_id(db, user_id, offset, limit)
 
 
 def assign_user_to_client(

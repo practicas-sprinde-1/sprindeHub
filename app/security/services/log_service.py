@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,7 +16,7 @@ from app.security.models.log_model import Log, ActionType, EntityType, utc_now_d
 from app.security.repositories import log_repo
 
 
-ENTITY_SEARCH_FIELDS = {
+ENTITY_TEXT_VALUE = {
     EntityType.CLIENT: (Client, "name"),
     EntityType.COMMAND: (Command, "name"),
     EntityType.DOMAIN: (Domain, "url"),
@@ -25,6 +27,33 @@ ENTITY_SEARCH_FIELDS = {
     EntityType.REPOSITORY: (Repository, "url"),
     EntityType.SERVICE: (Service, "name"),
 }
+
+
+def _get_entity_text(
+        db: Session,
+        entity_id: int,
+        entity_type: EntityType,
+) -> object:
+    #Desempaqueta la tupla del diccionario, entity_model = entidad y field_name = atributo
+    entity_model, field_name = ENTITY_TEXT_VALUE[entity_type]
+
+    #Evita que se borre la entidad sin antes haber guardado su valor
+    with db.no_autoflush:
+        entity = db.get(entity_model, entity_id)
+
+    if entity is None:
+        return ""
+    #Usa "" para evitar que salte error en caso de poner un campo/atributo que no existe y devuelva "".
+    return getattr(entity,field_name,"")
+
+
+def _format_for_search(
+        action: ActionType,
+        entity_type: EntityType,
+        created_at: datetime,
+        entity_value: object,
+) -> str:
+    return f"{action.value} {entity_type.value} {created_at.isoformat(sep=' ')} {entity_value}"
 
 
 def get_log(
@@ -77,21 +106,17 @@ def register_log(
 
 ) -> Log:
     created_at = utc_now_db()
-    entity_model, field_name = ENTITY_SEARCH_FIELDS[affected_entity]
-
-    # no_autoflush conserva el valor de la entidad al registrar un DELETE.
-    # De este modo el texto histórico se guarda antes de que el borrado llegue
-    # a la base de datos.
-    with db.no_autoflush:
-        entity = db.get(entity_model, affected_entity_id)
-
-    entity_value = getattr(entity, field_name, "") if entity is not None else ""
-    search_text = " ".join((
-        action.value,
-        affected_entity.value,
-        created_at.isoformat(sep=" "),
-        str(entity_value),
-    ))
+    entity_value = _get_entity_text(
+        db,
+        affected_entity_id,
+        affected_entity,
+    )
+    search_text = _format_for_search(
+        action,
+        affected_entity,
+        created_at,
+        entity_value,
+    )
 
     log = Log(
         user_id=user_id,
