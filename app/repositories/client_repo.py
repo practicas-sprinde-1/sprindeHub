@@ -267,6 +267,15 @@ def find_by_cif(db: Session, cif: str) -> Client | None:
     statement = select(Client).where(Client.cif == cif)
     return db.scalars(statement).first()
 
+def find_by_phone(
+        db: Session,
+        phone: str,
+) -> Client | None:
+    statement = select(Client).where(Client.phone == phone)
+
+    return db.scalar(statement)
+
+
 
 def set_favorite_status(
         db: Session,

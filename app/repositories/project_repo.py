@@ -391,3 +391,13 @@ def save(db: Session, project: Project) -> Project:
 
 def delete(db: Session, project: Project) -> None:
     db.delete(project)
+
+
+def find_by_name(
+        db: Session,
+        name: str,
+) -> Project | None:
+    statement = select(Project).where(Project.name == name)
+
+    return db.scalar(statement)
+

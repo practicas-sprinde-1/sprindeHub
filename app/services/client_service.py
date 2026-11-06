@@ -72,22 +72,39 @@ def _validate_unique_name(
         detail="Ya existe un cliente con ese nombre",
     )
 
+def _validate_unique_phone(
+    db: Session,
+    client: Client,
+    phone: str | None,
+) -> None:
+    if not phone:
+        return
+
+    existing_client = client_repo.find_by_phone(db, phone)
+    if existing_client is None or existing_client.id == client.id:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail="Ya existe un cliente con ese telefono",
+    )
+
+
 
 def _normalize_and_validate_cif(
     db: Session,
     client: Client,
-    data: ClientUpdate,
+    cif: str,
 ) -> None:
-    if data.cif == "":
-        data.cif = None
+    if cif == "":
+        cif = None
 
-    if data.cif is None:
+    if cif is None:
         return
 
-    existing_client = client_repo.find_by_cif(db, data.cif)
+    existing_client = client_repo.find_by_cif(db, cif)
     if existing_client is None or existing_client.id == client.id:
         return
-
     raise HTTPException(
         status_code=status.HTTP_409_CONFLICT,
         detail="Ya existe un cliente con ese cif",
@@ -212,6 +229,10 @@ def create_client(
     current_user: User,
 ) -> Client:
     client = Client(name=data.name, cif=data.cif, phone=data.phone)
+    _validate_unique_phone(db,client,client.phone)
+    _normalize_and_validate_cif(db,client,client.cif)
+    _validate_unique_name(db, client, client.name)
+
     return _save_client_with_log(
         db,
         client,
@@ -228,7 +249,8 @@ def update_client(
 ) -> Client:
     client = get_client(db, client_id, current_user.id)
     _validate_unique_name(db, client, data.name)
-    _normalize_and_validate_cif(db, client, data)
+    _validate_unique_phone(db, client, data.phone)
+    _normalize_and_validate_cif(db, client, data.cif)
     _apply_client_updates(client, data)
 
     return _save_client_with_log(

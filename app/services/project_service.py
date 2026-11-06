@@ -52,6 +52,19 @@ def _register_project_log(
         affected_entity_id=project_id,
     )
 
+def _check_name_is_available(
+        db: Session,
+        name: str,
+        project: Project | None = None,
+        conflict_detail: str = "Nombre ya registrado.",
+) -> None:
+    if project is not None and name == project.name:
+        return
+    if project_repo.find_by_name(db, name) is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=conflict_detail,
+        )
 
 
 def _save_project_with_log(
@@ -346,6 +359,9 @@ def create_project(
     if data.client_id is not None:
         client_service.get_active_client(db, data.client_id)
 
+    if data.name is not None:
+        _check_name_is_available(db,data.name)
+
     project = Project(
         name=data.name,
         description=data.description,
@@ -371,6 +387,9 @@ def update_project(
 
     if updates.get("client_id") is not None:
         client_service.get_active_client(db, updates["client_id"])
+
+    if updates.get("name") is not None:
+        _check_name_is_available(db,updates["name"],project)
 
     for field, value in updates.items():
         setattr(project, field, value)
