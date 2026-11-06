@@ -70,8 +70,7 @@ def save(
         user_client: UserClient,
 ) -> UserClient:
     db.add(user_client)
-    db.commit()
-    db.refresh(user_client)
+    db.flush()
     return user_client
 
 
@@ -80,4 +79,3 @@ def delete(
         user_client: UserClient,
 ) -> None:
     db.delete(user_client)
-    db.commit()

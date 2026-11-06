@@ -47,3 +47,19 @@ def find_by_ids(
     db: Session, user_id: int, project_id: int
 ) -> UserFavoriteProject | None:
     return db.get(UserFavoriteProject, (user_id, project_id))
+
+
+def save(
+    db: Session,
+    favorite: UserFavoriteProject,
+) -> UserFavoriteProject:
+    db.add(favorite)
+    db.flush()
+    return favorite
+
+
+def delete(
+    db: Session,
+    favorite: UserFavoriteProject,
+) -> None:
+    db.delete(favorite)

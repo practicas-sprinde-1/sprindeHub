@@ -128,12 +128,14 @@ def list_favorite_projects(
     current_user: CurrentUser,
     offset: PaginationOffset = 0,
     limit: PaginationLimit = 20,
+    search : ProjectSearch= None,
 ):
     return user_favorite_project_service.get_user_favorite_projects_by_user_id(
         db,
         current_user.id,
         offset,
         limit,
+        search
     )
 
 

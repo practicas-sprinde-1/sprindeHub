@@ -11,7 +11,18 @@ from app.models.project import Project
 from app.models.repository import Repository
 from app.models.service import Service
 from app.models.user_favorite_project_model import UserFavoriteProject
-from app.repositories import project_repo
+from app.repositories import (
+    client_repo,
+    command_repo,
+    domain_repo,
+    environment_repo,
+    link_repo,
+    note_repo,
+    project_repo,
+    repository_repo,
+    service_repo,
+    user_favorite_project_repo,
+)
 from app.schemas.project_schema import (
     PaginatedProjectTableRead,
     ProjectCreate,
@@ -21,6 +32,7 @@ from app.schemas.project_schema import (
 )
 from app.security.models.log_model import ActionType, EntityType
 from app.security.models.user_client_model import UserClient
+from app.security.repositories import user_client_repo
 from app.security.models.user_model import User
 from app.security.services import log_service
 from app.services import client_service
@@ -103,9 +115,11 @@ def _find_or_create_client(
         cif=data.client.cif,
         phone=data.client.phone,
     )
-    db.add(client)
-    db.flush()
-    db.add(UserClient(user_id=current_user.id, client_id=client.id))
+    client_repo.save(db, client)
+    user_client_repo.save(
+        db,
+        UserClient(user_id=current_user.id, client_id=client.id),
+    )
 
     log_service.register_log(
         db=db,
@@ -123,51 +137,72 @@ def _add_project_children(
         data: ProjectFullCreate,
 ) -> None:
     for item in data.environments:
-        db.add(Environment(
-            project_id=project_id,
-            type=item.type,
-            url=item.url,
-        ))
+        environment_repo.save(
+            db,
+            Environment(
+                project_id=project_id,
+                type=item.type,
+                url=item.url,
+            ),
+        )
 
     for item in data.repositories:
-        db.add(Repository(
-            project_id=project_id,
-            type=item.type,
-            url=item.url,
-        ))
+        repository_repo.save(
+            db,
+            Repository(
+                project_id=project_id,
+                type=item.type,
+                url=item.url,
+            ),
+        )
 
     for item in data.services:
-        db.add(Service(
-            project_id=project_id,
-            name=item.name,
-        ))
+        service_repo.save(
+            db,
+            Service(
+                project_id=project_id,
+                name=item.name,
+            ),
+        )
 
     for item in data.domains:
-        db.add(Domain(
-            project_id=project_id,
-            url=item.url,
-        ))
+        domain_repo.save(
+            db,
+            Domain(
+                project_id=project_id,
+                url=item.url,
+            ),
+        )
 
     for item in data.commands:
-        db.add(Command(
-            project_id=project_id,
-            name=item.name,
-            instruction=item.instruction,
-        ))
+        command_repo.save(
+            db,
+            Command(
+                project_id=project_id,
+                name=item.name,
+                instruction=item.instruction,
+            ),
+        )
 
     for item in data.links:
-        db.add(Link(
-            project_id=project_id,
-            title=item.title,
-            url=item.url,
-        ))
+        link_repo.save(
+            db,
+            Link(
+                project_id=project_id,
+                title=item.title,
+                url=item.url,
+            ),
+        )
 
     for item in data.notes:
-        db.add(Note(
-            project_id=project_id,
-            description=item.description,
-            content=item.content,
-        ))
+        note_repo.save(
+            db,
+            Note(
+                project_id=project_id,
+                description=item.description,
+                content=item.content,
+            ),
+        )
 
 
 def get_project(
@@ -240,7 +275,11 @@ def favorite_project(
         current_user: User,
 ) -> Project:
     project = get_project(db, project_id, current_user.id)
-    favorite = db.get(UserFavoriteProject, (current_user.id, project.id))
+    favorite = user_favorite_project_repo.find_by_ids(
+        db,
+        current_user.id,
+        project.id,
+    )
 
     if favorite is not None:
         raise HTTPException(
@@ -248,8 +287,9 @@ def favorite_project(
             detail="El proyecto ya está en favoritos",
         )
 
-    db.add(
-        UserFavoriteProject(user_id=current_user.id, project_id=project.id)
+    user_favorite_project_repo.save(
+        db,
+        UserFavoriteProject(user_id=current_user.id, project_id=project.id),
     )
     project.is_favorite = True
     return _commit_and_refresh_project(db, project)
@@ -261,10 +301,14 @@ def unfavorite_project(
         current_user: User,
 ) -> Project:
     project = get_project(db, project_id, current_user.id)
-    favorite = db.get(UserFavoriteProject, (current_user.id, project.id))
+    favorite = user_favorite_project_repo.find_by_ids(
+        db,
+        current_user.id,
+        project.id,
+    )
 
     if favorite is not None:
-        db.delete(favorite)
+        user_favorite_project_repo.delete(db, favorite)
 
     project.is_favorite = False
     return _commit_and_refresh_project(db, project)
@@ -449,8 +493,7 @@ def create_full_project(
             client_id=client_id,
         )
 
-        db.add(project)
-        db.flush()
+        project_repo.save(db, project)
 
         _add_project_children(db, project.id, data)
         _register_project_log(

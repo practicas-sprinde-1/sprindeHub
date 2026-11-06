@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.models.client import Client
 from app.models.user_favorite_client_model import UserFavoriteClient
-from app.repositories import client_repo
+from app.repositories import client_repo, user_favorite_client_repo
 from app.schemas.client_schema import (
     ClientCreate,
     ClientLightRead,
@@ -305,14 +305,21 @@ def favorite_client(
     current_user: User,
 ) -> Client:
     client = get_client(db, client_id, current_user.id)
-    favorite = db.get(UserFavoriteClient, (current_user.id, client.id))
+    favorite = user_favorite_client_repo.find_by_ids(
+        db,
+        current_user.id,
+        client.id,
+    )
     if favorite is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="El cliente ya está en favoritos",
         )
 
-    db.add(UserFavoriteClient(user_id=current_user.id, client_id=client.id))
+    user_favorite_client_repo.save(
+        db,
+        UserFavoriteClient(user_id=current_user.id, client_id=client.id),
+    )
     client.is_favorite = True
     return _commit_and_refresh_client(db, client)
 
@@ -323,9 +330,13 @@ def unfavorite_client(
     current_user: User,
 ) -> Client:
     client = get_client(db, client_id, current_user.id)
-    favorite = db.get(UserFavoriteClient, (current_user.id, client.id))
+    favorite = user_favorite_client_repo.find_by_ids(
+        db,
+        current_user.id,
+        client.id,
+    )
     if favorite is not None:
-        db.delete(favorite)
+        user_favorite_client_repo.delete(db, favorite)
 
     client.is_favorite = False
     return _commit_and_refresh_client(db, client)

@@ -73,7 +73,14 @@ def assign_user_to_client(
         client_id=client.id
     )
 
-    return user_client_repo.save(db, user_client)
+    try:
+        user_client_repo.save(db, user_client)
+        db.commit()
+        db.refresh(user_client)
+        return user_client
+    except Exception:
+        db.rollback()
+        raise
 
 
 def revoke_client_access(
@@ -92,5 +99,10 @@ def revoke_client_access(
             detail=f"El usuario '{user.username}' no tiene acceso al cliente '{client.name}'."
         )
 
-    user_client_repo.delete(db, existing_access)
-    return f"El usuario {user.username} ya no tiene acceso al cliente {client.name}"
+    try:
+        user_client_repo.delete(db, existing_access)
+        db.commit()
+        return f"El usuario {user.username} ya no tiene acceso al cliente {client.name}"
+    except Exception:
+        db.rollback()
+        raise

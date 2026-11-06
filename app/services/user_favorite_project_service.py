@@ -25,11 +25,11 @@ def get_user_favorite_projects(
 
 
 def get_user_favorite_projects_by_user_id(
-        db: Session, user_id: int, offset: int, limit: int
+        db: Session, user_id: int, offset: int, limit: int,search:str
 ) -> PaginatedProjectTableRead:
     user_service.get_user(db, user_id)
     return project_repo.find_all(
-        db, offset, limit, favorite_user_id=user_id, only_favorites=True
+        db, offset, limit,search, favorite_user_id=user_id, only_favorites=True
     )
 
 

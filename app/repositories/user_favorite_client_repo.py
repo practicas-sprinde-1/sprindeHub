@@ -55,3 +55,19 @@ def find_by_ids(
     client_id: int,
 ) -> UserFavoriteClient | None:
     return db.get(UserFavoriteClient, (user_id, client_id))
+
+
+def save(
+    db: Session,
+    favorite: UserFavoriteClient,
+) -> UserFavoriteClient:
+    db.add(favorite)
+    db.flush()
+    return favorite
+
+
+def delete(
+    db: Session,
+    favorite: UserFavoriteClient,
+) -> None:
+    db.delete(favorite)
