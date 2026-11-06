@@ -165,9 +165,10 @@ def find_my_favorites(
     current_user: CurrentUser,
     offset: PaginationOffset = 0,
     limit: PaginationLimit = 20,
+    search:str = None,
 ) -> PaginatedClientRead:
     return user_favorite_client_service.get_user_favorite_clients_by_user_id(
-        db, current_user.id, offset, limit
+        db, current_user.id, offset, limit,search
     )
 
 

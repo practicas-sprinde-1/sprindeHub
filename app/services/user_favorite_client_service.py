@@ -25,10 +25,10 @@ def get_user_favorite_clients(
 
 
 def get_user_favorite_clients_by_user_id(
-        db: Session, user_id: int, offset: int, limit: int
+        db: Session, user_id: int, offset: int, limit: int,search:str
 ) -> PaginatedClientRead:
     user_service.get_user(db, user_id)
-    return client_repo.find_favorites_by_user(db, user_id, offset, limit)
+    return client_repo.find_favorites_by_user(db, user_id, offset, limit,search)
 
 
 def get_user_favorite_clients_by_client_id(

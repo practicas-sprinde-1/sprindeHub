@@ -241,12 +241,14 @@ def find_favorites_by_user(
         user_id: int,
         offset: int = 0,
         limit: int = 20,
+        search:str=None,
 ) -> PaginatedClientRead:
     return _find_all(
         db,
         is_active=None,
         offset=offset,
         limit=limit,
+        search=search,
         favorite_user_id=user_id,
         only_favorites=True,
     )
