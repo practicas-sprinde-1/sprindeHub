@@ -406,31 +406,8 @@ def delete_project(
         db: Session,
         project_id: int,
         current_user: User,
-) -> str:
+) -> None:
     project = get_project(db, project_id, current_user.id)
-
-    has_dependencies = any((
-        project.environments,
-        project.repositories,
-        project.domains,
-        project.links,
-        project.services,
-        project.commands,
-        project.notes,
-    ))
-
-    if has_dependencies:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=(
-                "El proyecto aún contiene dependencias activas. "
-                "Borra las depencencias primero."
-                "Puedes archivar el proyecto en su lugar."
-            ),
-        )
-
-    project_name = project.name
-    client_name = project.client.name if project.client is not None else None
 
     try:
         project_repo.delete(db, project)
@@ -442,16 +419,6 @@ def delete_project(
             project.id,
         )
         db.commit()
-
-        if client_name is None:
-            return (
-                f"El proyecto huérfano {project_name} "
-                "ha sido borrado correctamente"
-            )
-        return (
-            f"El proyecto {project_name} del cliente {client_name} "
-            "ha sido borrado correctamente"
-        )
     except Exception:
         db.rollback()
         raise

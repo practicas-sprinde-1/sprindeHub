@@ -18,7 +18,7 @@ class Domain(Base):
     )
 
     project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.id"),
+        ForeignKey("projects.id", ondelete="CASCADE", name="fk_domains_project_id_projects"),
         nullable=False,
     )
 

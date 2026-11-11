@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from app.models.repository import Repository
 from app.models.service import Service
 from app.security.models.log_model import Log, ActionType, EntityType, utc_now_db
 from app.security.repositories import log_repo
+from app.security.schemas.log_schema import LogPage
 
 
 ENTITY_TEXT_VALUE = {
@@ -75,7 +76,43 @@ def get_logs(
         limit: int,
         search: str | None = None,
 ) -> list[Log]:
-    return log_repo.find_all(db, offset, limit, search)
+    return log_repo.find_all_list(db, offset, limit, search)
+
+
+def get_logs_page(
+        db: Session,
+        *,
+        offset: int,
+        limit: int,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        action: ActionType | None = None,
+        username: str | None = None,
+        affected_entity: EntityType | None = None,
+        search: str | None = None,
+) -> LogPage:
+    if start_date is not None and end_date is not None:
+        if start_date > end_date:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="start_date debe ser anterior o igual a end_date.",
+            )
+
+    end_before = None
+    if end_date is not None and end_date < date.max:
+        end_before = end_date + timedelta(days=1)
+
+    return log_repo.find_all(
+        db,
+        offset=offset,
+        limit=limit,
+        start_date=start_date,
+        end_before=end_before,
+        action=action,
+        username=username,
+        affected_entity=affected_entity,
+        search=search,
+    )
 
 
 def get_logs_by_users(

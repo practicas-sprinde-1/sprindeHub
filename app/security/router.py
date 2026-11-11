@@ -9,10 +9,10 @@ from app.security.dependencies import (
     require_admin,
     require_modifier_role,
 )
-from app.security.models.log_model import EntityType, Log
+from app.security.models.log_model import ActionType, EntityType, Log
 from app.security.models.user_client_model import UserClient
 from app.security.models.user_model import User
-from app.security.schemas.log_schema import LogRead
+from app.security.schemas.log_schema import LogDate, LogPage, LogRead
 from app.security.schemas.userClient_schema import UserClientAccess, UserClientRead
 from app.security.schemas.user_token_schemas import (
     AccessToken,
@@ -265,6 +265,36 @@ def get_logs(
     search: SearchQuery = None,
 ) -> list[Log]:
     return log_service.get_logs(db, offset, limit, search)
+
+
+@router_admin.get(
+    "/logs/page",
+    response_model=LogPage,
+    status_code=status.HTTP_200_OK,
+)
+def get_logs_page(
+    db: DbSession,
+    _: AdminUser,
+    offset: OffsetQuery = 0,
+    limit: LimitQuery = 20,
+    start_date: LogDate | None = None,
+    end_date: LogDate | None = None,
+    action: ActionType | None = None,
+    username: str | None = None,
+    affected_entity: EntityType | None = None,
+    search: SearchQuery = None,
+) -> LogPage:
+    return log_service.get_logs_page(
+        db,
+        offset=offset,
+        limit=limit,
+        start_date=start_date,
+        end_date=end_date,
+        action=action,
+        username=username,
+        affected_entity=affected_entity,
+        search=search,
+    )
 
 
 @router_admin.get(

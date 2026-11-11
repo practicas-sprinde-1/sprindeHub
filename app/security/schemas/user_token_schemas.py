@@ -76,6 +76,7 @@ class UserRead(BaseModel):
     email: EmailStr
     username: str
     role: str
+    is_active:bool
     model_config = ConfigDict(from_attributes=True)
 
 

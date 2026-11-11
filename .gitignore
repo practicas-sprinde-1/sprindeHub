@@ -6,3 +6,5 @@ __pycache__/
 .vscode/
 .env.test
 .pytest_cache/
+docs/odd/
+tests

@@ -29,7 +29,7 @@ def find_all(
         limit: int = 20,
         search: str | None = None,
 ) -> list[User]:
-    statement = select(User).where(User.is_active.is_(True))
+    statement = select(User)
     statement = _filter_by_search(statement, search)
     statement = (
         statement

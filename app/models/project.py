@@ -46,31 +46,45 @@ class Project(Base):
     )
 
     environments: Mapped[list["Environment"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     repositories: Mapped[list["Repository"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     domains: Mapped[list["Domain"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     links: Mapped[list["Link"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     services: Mapped[list["Service"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     commands: Mapped[list["Command"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     notes: Mapped[list["Note"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     is_active: Mapped[bool] = mapped_column(
