@@ -10,6 +10,31 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_domain_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        domain_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.DOMAIN,
+        affected_entity_id=domain_id,
+    )
+
+
+def _commit_and_refresh_domain(db: Session, domain: Domain) -> Domain:
+    try:
+        db.commit()
+        db.refresh(domain)
+        return domain
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_domain(
         db: Session,
         domain_id: int
@@ -65,16 +90,8 @@ def create_domain(
 
     try:
         domain_repo.save(db, domain)
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.DOMAIN,
-            affected_entity_id=domain.id
-        )
-        db.commit()
-        db.refresh(domain)
-        return domain
+        _register_domain_log(db, current_user.id, ActionType.CREATE, domain.id)
+        return _commit_and_refresh_domain(db, domain)
     except Exception:
         db.rollback()
         raise
@@ -95,20 +112,12 @@ def update_domain(
         project_service.get_active_project(db, updates["project_id"])
 
     for field, value in updates.items():
-         setattr(domain, field, value)
+        setattr(domain, field, value)
 
     try:
         domain_repo.save(db, domain)
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.DOMAIN,
-            affected_entity_id=domain.id
-        )
-        db.commit()
-        db.refresh(domain)
-        return domain
+        _register_domain_log(db, current_user.id, ActionType.UPDATE, domain.id)
+        return _commit_and_refresh_domain(db, domain)
 
     except Exception:
         db.rollback()
@@ -118,25 +127,16 @@ def update_domain(
 def delete_domain(
         db: Session,
         domain_id: int,
-        current_user:User
+        current_user: User
 ) -> str:
     domain = get_domain(db, domain_id)
     name_project = domain.project.name
 
     try:
         domain_repo.delete(db, domain)
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.DOMAIN,
-            affected_entity_id=domain.id
-        )
+        _register_domain_log(db, current_user.id, ActionType.DELETE, domain.id)
         db.commit()
         return f"El dominio del proyecto {name_project} ha sido borrado correctamente"
     except Exception:
         db.rollback()
         raise
-
-
-

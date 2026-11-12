@@ -11,6 +11,7 @@ con la estructura de la base de datos:
 
 erDiagram
 	clientes ||--o{ proyectos : references
+	clientes ||--o{ tags : tags
 	entornos }o--|| proyectos : references
 	repositorios }o--|| proyectos : references
 	servicios }o--|| proyectos : references
@@ -24,6 +25,16 @@ erDiagram
 		VARCHAR(255) nombre
 		VARCHAR(255) CIF
 		VARCHAR(255) telefono
+	}
+
+	tags {
+		INTEGER id
+		INTEGER client_id
+		VARCHAR(50) device_type
+		VARCHAR(50) brand
+		VARCHAR(100) model
+		VARCHAR(255) mac
+		VARCHAR(255) ip
 	}
 
 	proyectos {
@@ -79,4 +90,3 @@ erDiagram
 		VARCHAR(255) descripcion
 		TEXT(65535) contenido
 	}
-

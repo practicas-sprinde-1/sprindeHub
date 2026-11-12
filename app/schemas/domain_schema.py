@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 
+
 class DomainBase(BaseModel):
     url: str = Field(
         min_length=1,
@@ -8,8 +9,10 @@ class DomainBase(BaseModel):
     )
     project_id: int = Field(gt=0)
 
+
 class DomainCreate(DomainBase):
     pass
+
 
 class DomainUpdate(BaseModel):
     url: str | None = Field(
@@ -23,8 +26,7 @@ class DomainUpdate(BaseModel):
         gt=0
     )
 
+
 class DomainRead(DomainBase):
-    id:int
+    id: int
     model_config = ConfigDict(from_attributes=True)
-
-

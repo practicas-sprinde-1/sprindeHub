@@ -3,7 +3,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base_class import Base
 from app.models.client import Client
-
 from app.security.models.user_model import User
 
 
@@ -16,7 +15,7 @@ class UserClient(Base):
     )
 
     client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"),
+        ForeignKey("clients.id", ondelete="CASCADE"),
         primary_key=True,
     )
 

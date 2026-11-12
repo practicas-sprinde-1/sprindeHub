@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 
+
 class NoteBase(BaseModel):
     description: str = Field(
         min_length=1,
@@ -12,8 +13,10 @@ class NoteBase(BaseModel):
         max_length=5000,
     )
 
+
 class NoteCreate(NoteBase):
     pass
+
 
 class NoteUpdate(BaseModel):
     description: str | None = Field(
@@ -25,14 +28,13 @@ class NoteUpdate(BaseModel):
         default=None,
         gt=0
     )
-    content: str |None = Field(
+    content: str | None = Field(
         default=None,
         min_length=1,
         max_length=5000,
     )
 
+
 class NoteRead(NoteBase):
-    id:int
+    id: int
     model_config = ConfigDict(from_attributes=True)
-
-

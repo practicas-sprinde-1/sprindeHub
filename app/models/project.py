@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, ClassVar
 
 from sqlalchemy import String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import mapped_column, Mapped, relationship
@@ -6,7 +6,6 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.database.base_class import Base
 
 if TYPE_CHECKING:
-    from app.models.client import Client
     from app.models.environment import Environment
     from app.models.repository import Repository
     from app.models.link import Link
@@ -14,7 +13,7 @@ if TYPE_CHECKING:
     from app.models.command import Command
     from app.models.domain import Domain
     from app.models.note import Note
-
+    from app.models.user_favorite_project_model import UserFavoriteProject
 
 
 class Project(Base):
@@ -25,9 +24,9 @@ class Project(Base):
         autoincrement=True
     )
 
-    client_id: Mapped[int] = mapped_column(
-        ForeignKey("clients.id"),
-        nullable=False,
+    client_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clients.id", ondelete="SET NULL"),
+        nullable=True,
     )
 
     name: Mapped[str] = mapped_column(
@@ -36,43 +35,57 @@ class Project(Base):
         unique=True
     )
 
-    description: Mapped[str|None] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
         nullable=True,
     )
 
-    client: Mapped["Client"] = relationship(
-        back_populates="projects"
+    client: Mapped["Client | None"] = relationship(
+        back_populates="projects",
+        passive_deletes=True,
     )
 
     environments: Mapped[list["Environment"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     repositories: Mapped[list["Repository"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     domains: Mapped[list["Domain"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     links: Mapped[list["Link"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     services: Mapped[list["Service"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     commands: Mapped[list["Command"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     notes: Mapped[list["Note"]] = relationship(
-        back_populates="project"
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
-
 
     is_active: Mapped[bool] = mapped_column(
         Boolean,
@@ -81,3 +94,9 @@ class Project(Base):
         server_default="1",
     )
 
+    #Uso esta relacion para crear is_favorite en el schema de lectura para el frontend
+    user_favorites: Mapped[list["UserFavoriteProject"]] = relationship(
+        back_populates="project",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

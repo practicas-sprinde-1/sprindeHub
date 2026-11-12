@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.security.models.user_client_model import UserClient
 from app.security.repositories import user_client_repo
 from app.security.schemas.userClient_schema import UserClientAccess
-from app.services import client_service
 from app.security.services import user_service
+from app.services import client_service
 
 
 def get_user_client(
@@ -27,9 +27,7 @@ def get_user_clients(
         offset: int,
         limit: int
 ) -> list[UserClient]:
-    user_clients = user_client_repo.find_all(db,offset, limit,)
-
-    return user_clients
+    return user_client_repo.find_all(db, offset, limit)
 
 
 def get_user_clients_by_client_id(
@@ -40,8 +38,7 @@ def get_user_clients_by_client_id(
 
 ) -> list[UserClient]:
     client_service.get_client(db, client_id)
-    user_clients = user_client_repo.find_by_client_id(db, client_id, offset, limit)
-    return user_clients
+    return user_client_repo.find_by_client_id(db, client_id, offset, limit)
 
 
 def get_user_clients_by_user_id(
@@ -52,8 +49,7 @@ def get_user_clients_by_user_id(
 
 ) -> list[UserClient]:
     user_service.get_user(db, user_id)
-    user_clients = user_client_repo.find_by_user_id(db, user_id, offset, limit)
-    return user_clients
+    return user_client_repo.find_by_user_id(db, user_id, offset, limit)
 
 
 def assign_user_to_client(
@@ -77,7 +73,14 @@ def assign_user_to_client(
         client_id=client.id
     )
 
-    return user_client_repo.save(db, user_client)
+    try:
+        user_client_repo.save(db, user_client)
+        db.commit()
+        db.refresh(user_client)
+        return user_client
+    except Exception:
+        db.rollback()
+        raise
 
 
 def revoke_client_access(
@@ -96,5 +99,10 @@ def revoke_client_access(
             detail=f"El usuario '{user.username}' no tiene acceso al cliente '{client.name}'."
         )
 
-    user_client_repo.delete(db, existing_access)
-    return f"El usuario {user.username} ya no tiene acceso al cliente {client.name}"
+    try:
+        user_client_repo.delete(db, existing_access)
+        db.commit()
+        return f"El usuario {user.username} ya no tiene acceso al cliente {client.name}"
+    except Exception:
+        db.rollback()
+        raise

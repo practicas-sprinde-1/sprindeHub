@@ -8,16 +8,17 @@ from app.database.base_class import Base
 if TYPE_CHECKING:
     from app.models.project import Project
 
-class  Command(Base):
+
+class Command(Base):
     __tablename__ = "commands"
 
-    id:Mapped[int] = mapped_column(
+    id: Mapped[int] = mapped_column(
         primary_key=True,
         autoincrement=True
     )
 
     project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.id"),
+        ForeignKey("projects.id", ondelete="CASCADE", name="fk_commands_project_id_projects"),
         nullable=False,
     )
 
@@ -31,13 +32,6 @@ class  Command(Base):
         nullable=False,
     )
 
-
     project: Mapped["Project"] = relationship(
         back_populates="commands",
     )
-
-
-
-
-
-

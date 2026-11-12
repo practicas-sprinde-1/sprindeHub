@@ -12,8 +12,10 @@ class RepositoryBase(BaseModel):
     )
     project_id: int = Field(gt=0)
 
+
 class RepositoryCreate(RepositoryBase):
     pass
+
 
 class RepositoryUpdate(BaseModel):
     type: RepositoryType | None = Field(
@@ -30,8 +32,7 @@ class RepositoryUpdate(BaseModel):
         gt=0
     )
 
+
 class RepositoryRead(RepositoryBase):
-    id:int
+    id: int
     model_config = ConfigDict(from_attributes=True)
-
-

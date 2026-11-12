@@ -9,24 +9,23 @@ if TYPE_CHECKING:
     from app.models.project import Project
 
 
-class  Link(Base):
+class Link(Base):
     __tablename__ = "links"
 
-    id:Mapped[int] = mapped_column(
+    id: Mapped[int] = mapped_column(
         primary_key=True,
         autoincrement=True
     )
 
     project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.id"),
+        ForeignKey("projects.id", ondelete="CASCADE", name="fk_links_project_id_projects"),
         nullable=False,
     )
 
-    title:Mapped[str]= mapped_column(
+    title: Mapped[str] = mapped_column(
         String(255),
         nullable=False
     )
-
 
     url: Mapped[str] = mapped_column(
         String(255),
@@ -36,9 +35,3 @@ class  Link(Base):
     project: Mapped["Project"] = relationship(
         back_populates="links",
     )
-
-
-
-
-
-

@@ -10,6 +10,34 @@ from app.security.services import log_service
 from app.services import project_service
 
 
+def _register_repository_log(
+        db: Session,
+        user_id: int,
+        action: ActionType,
+        repository_id: int,
+) -> None:
+    log_service.register_log(
+        db=db,
+        user_id=user_id,
+        action=action,
+        affected_entity=EntityType.REPOSITORY,
+        affected_entity_id=repository_id,
+    )
+
+
+def _commit_and_refresh_repository(
+        db: Session,
+        repository: Repository,
+) -> Repository:
+    try:
+        db.commit()
+        db.refresh(repository)
+        return repository
+    except Exception:
+        db.rollback()
+        raise
+
+
 def get_repository(
         db: Session,
         repository_id: int
@@ -67,16 +95,10 @@ def create_repository(
     try:
         repository_repo.save(db, repository)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.CREATE,
-            affected_entity=EntityType.REPOSITORY,
-            affected_entity_id=repository.id
+        _register_repository_log(
+            db, current_user.id, ActionType.CREATE, repository.id
         )
-        db.commit()
-        db.refresh(repository)
-        return repository
+        return _commit_and_refresh_repository(db, repository)
     except Exception:
         db.rollback()
         raise
@@ -86,7 +108,7 @@ def update_repository(
         db: Session,
         repository_id: int,
         data: RepositoryUpdate,
-        current_user:User
+        current_user: User
 ) -> Repository:
     repository = get_repository(db, repository_id)
 
@@ -102,16 +124,10 @@ def update_repository(
     try:
         repository_repo.save(db, repository)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.UPDATE,
-            affected_entity=EntityType.REPOSITORY,
-            affected_entity_id=repository.id
+        _register_repository_log(
+            db, current_user.id, ActionType.UPDATE, repository.id
         )
-        db.commit()
-        db.refresh(repository)
-        return repository
+        return _commit_and_refresh_repository(db, repository)
     except Exception:
         db.rollback()
         raise
@@ -120,7 +136,7 @@ def update_repository(
 def delete_repository(
         db: Session,
         repository_id: int,
-        current_user:User
+        current_user: User
 ) -> str:
     repository = get_repository(db, repository_id)
     name_project = repository.project.name
@@ -128,12 +144,8 @@ def delete_repository(
     try:
         repository_repo.delete(db, repository)
 
-        log_service.register_log(
-            db=db,
-            user_id=current_user.id,
-            action=ActionType.DELETE,
-            affected_entity=EntityType.REPOSITORY,
-            affected_entity_id=repository.id
+        _register_repository_log(
+            db, current_user.id, ActionType.DELETE, repository.id
         )
         db.commit()
         return f"El repositorio del proyecto {name_project} ha sido borrado correctamente"
@@ -141,7 +153,3 @@ def delete_repository(
     except Exception:
         db.rollback()
         raise
-
-
-
-

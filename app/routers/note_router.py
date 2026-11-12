@@ -4,115 +4,127 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.dependency import get_db
+from app.models.note import Note
 from app.models.project import Project
-from app.schemas.note_schema import NoteRead,NoteCreate,NoteUpdate
-from app.security.dependencies import get_active_current_user, require_modifier_role, require_project_access
-from app.security.models.user_model import User, RoleType
+from app.schemas.note_schema import NoteCreate, NoteRead, NoteUpdate
+from app.security.dependencies import (
+    get_active_current_user,
+    require_modifier_role,
+    require_project_access,
+)
+from app.security.models.user_model import RoleType, User
 from app.services import note_service
 
 router = APIRouter(
     prefix="/notes",
-    tags=["notes"]
+    tags=["notes"],
 )
 
-DbSession = Annotated[
-    Session,
-    Depends(get_db)
-]
+DbSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_active_current_user)]
+CurrentWriter = Annotated[User, Depends(require_modifier_role)]
+AccessibleProject = Annotated[Project, Depends(require_project_access)]
 
-CurrentUser = Annotated[
-    User, Depends(get_active_current_user)
-]
 
-CurrentWriter = Annotated[
-    User,Depends(require_modifier_role)
-]
+def _get_accessible_note(
+    db: Session,
+    note_id: int,
+    current_user: User,
+) -> Note:
+    note = note_service.get_note(db, note_id)
+    require_project_access(note.project_id, db, current_user)
+    return note
 
-CurrentProject = Annotated[
-    Project,Depends(require_project_access)
-]
+def _validate_optional_project_access(
+    db: Session,
+    project_id: int | None,
+    current_user: User,
+) -> None:
+    if project_id is None:
+        return
+
+    require_project_access(project_id, db, current_user)
 
 @router.get(
     "",
-    response_model=list[NoteRead]
+    response_model=list[NoteRead],
 )
 def find_all(
-        db:DbSession,
-        current_user:CurrentUser,
-        offset:int = Query(default=0,ge=0),
-        limit:int=Query(default=20,ge=1,le=100)
+    db: DbSession,
+    current_user: CurrentUser,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
 ):
     if current_user.role == RoleType.ADMIN:
-        return note_service.get_notes(db,offset,limit)
-    return note_service.get_notes_by_users(db,current_user.id,offset, limit)
+        return note_service.get_notes(db, offset, limit)
+
+    return note_service.get_notes_by_users(db, current_user.id, offset, limit)
+
 
 @router.get(
     "/{note_id}",
-    response_model=NoteRead
+    response_model=NoteRead,
 )
 def find_by_id(
-        db:DbSession,
-        note_id:int,
-        current_user:CurrentUser
+    db: DbSession,
+    note_id: int,
+    current_user: CurrentUser,
 ):
-    note = note_service.get_note(db,note_id)
-    require_project_access(note.project_id,db,current_user)
-    return note
+    return _get_accessible_note(db, note_id, current_user)
+
 
 @router.get(
     "/project/{project_id}",
-    response_model=list[NoteRead]
+    response_model=list[NoteRead],
 )
 def find_by_project_id(
-        db:DbSession,
-        current_project:CurrentProject,
-        offset:int = Query(default=0,ge=0),
-        limit:int=Query(default=20,ge=1,le=100)
+    db: DbSession,
+    project: AccessibleProject,
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=20, ge=1, le=100),
 ):
-    return note_service.get_notes_by_id_project(db,current_project.id,offset,limit)
+    return note_service.get_notes_by_id_project(db, project.id, offset, limit)
+
 
 @router.post(
     "",
     response_model=NoteRead,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
 )
 def create(
-        db: DbSession,
-        data: NoteCreate,
-        current_user:CurrentWriter
+    db: DbSession,
+    data: NoteCreate,
+    current_user: CurrentWriter,
 ):
-    require_project_access(data.project_id,db,current_user)
-    return note_service.create_note(db, data,current_user)
+    require_project_access(data.project_id, db, current_user)
+    return note_service.create_note(db, data, current_user)
 
 
 @router.patch(
     "/{note_id}",
-    response_model=NoteRead
+    response_model=NoteRead,
 )
 def update(
-        db: DbSession,
-        note_id: int,
-        data: NoteUpdate,
-        current_user:CurrentWriter
+    db: DbSession,
+    note_id: int,
+    data: NoteUpdate,
+    current_user: CurrentWriter,
 ):
-    note = note_service.get_note(db,note_id)
-    require_project_access(note.project_id,db,current_user)
+    _get_accessible_note(db, note_id, current_user)
 
-    if data.project_id is not None:
-        require_project_access(data.project_id,db,current_user)
-    return note_service.update_note(db, note_id, data,current_user)
+    _validate_optional_project_access(db,data.project_id,current_user)
+
+    return note_service.update_note(db, note_id, data, current_user)
 
 
 @router.delete(
     "/{note_id}",
-    status_code=status.HTTP_204_NO_CONTENT
+    status_code=status.HTTP_204_NO_CONTENT,
 )
 def delete(
-        db: DbSession,
-        note_id: int,
-        current_user:CurrentWriter
+    db: DbSession,
+    note_id: int,
+    current_user: CurrentWriter,
 ) -> None:
-    note = note_service.get_note(db, note_id)
-    require_project_access(note.project_id, db, current_user)
-    note_service.delete_note(db, note_id,current_user)
-
+    _get_accessible_note(db, note_id, current_user)
+    note_service.delete_note(db, note_id, current_user)

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 
+
 class CommandBase(BaseModel):
     name: str = Field(
         min_length=1,
@@ -12,8 +13,10 @@ class CommandBase(BaseModel):
         max_length=255,
     )
 
+
 class CommandCreate(CommandBase):
     pass
+
 
 class CommandUpdate(BaseModel):
     name: str | None = Field(
@@ -25,14 +28,13 @@ class CommandUpdate(BaseModel):
         default=None,
         gt=0
     )
-    instruction: str |None = Field(
+    instruction: str | None = Field(
         default=None,
         min_length=1,
         max_length=255,
     )
 
+
 class CommandRead(CommandBase):
-    id:int
+    id: int
     model_config = ConfigDict(from_attributes=True)
-
-

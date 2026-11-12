@@ -1,4 +1,3 @@
-import app.database.base
 from getpass import getpass
 
 from pydantic import ValidationError
@@ -11,7 +10,8 @@ from app.security.models.user_model import RoleType, User
 from app.security.schemas.user_token_schemas import AdminUserCreate
 from app.security.utils import hash_password
 
-#Habilita crear un admin por consola. No se crea si ya existe 1 en la bdd.
+
+# Habilita crear un admin por consola. No se crea si ya existe 1 en la bdd.
 
 def admin_exists(db: Session) -> bool:
     statement = (
@@ -24,8 +24,8 @@ def admin_exists(db: Session) -> bool:
 
 
 def create_initial_admin(
-    db: Session,
-    data: AdminUserCreate,
+        db: Session,
+        data: AdminUserCreate,
 ) -> User:
     if admin_exists(db):
         raise ValueError(
@@ -71,9 +71,8 @@ def create_initial_admin(
     return user
 
 
-#Pide datos por la terminal para crear el administrador inicial
+# Pide datos por la terminal para crear el administrador inicial
 def main() -> int:
-
     db = sessionLocal()
 
     try:
@@ -105,7 +104,7 @@ def main() -> int:
                 "password": password,
                 "role": RoleType.ADMIN,
                 "is_active": True
-             }
+            }
         )
 
         admin = create_initial_admin(db, user)
@@ -116,14 +115,14 @@ def main() -> int:
         )
         return 0
 
-    #Captura errores específicos relacionados con Pydantic.
+    # Captura errores específicos relacionados con Pydantic.
 
     except ValidationError as error:
         print("Datos inválidos:")
         print(error)
         return 1
 
-    #Captura errores relacionadas con la app general.Ej: int("hola")
+    # Captura errores relacionadas con la app general.Ej: int("hola")
 
     except ValueError as error:
         print(error)
@@ -132,8 +131,9 @@ def main() -> int:
     finally:
         db.close()
 
+
 # solo se ejecuta si se llama desde consola, no desde otro modulo externo mediante importacion
-#Finalmente termina el script mostrando 0 si no hubo errores o 1 si lo hubo.
+# Finalmente termina el script mostrando 0 si no hubo errores o 1 si lo hubo.
 
 if __name__ == "__main__":
     raise SystemExit(main())

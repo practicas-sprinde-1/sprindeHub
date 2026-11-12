@@ -17,6 +17,7 @@ class ClientBase(BaseModel):
         max_length=120
     )
 
+
 class ClientCreate(ClientBase):
     pass
 
@@ -42,10 +43,26 @@ class ClientUpdate(BaseModel):
 
 class ClientRead(ClientBase):
     id: int
-    is_active:bool
+    is_active: bool
+    is_favorite: bool
 
     # Permite crear el DTO desde un objeto con atributos
     # dto = ClientRead.model_validate(client_orm)
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class ClientLightRead(BaseModel):
+    id: int
+    name: str
+    is_favorite: bool = False
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedClientRead(BaseModel):
+    items: list[ClientRead]
+    total: int = Field(ge=0)
+    offset: int = Field(ge=0)
+    limit: int = Field(ge=1)

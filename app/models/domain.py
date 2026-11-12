@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import  String, ForeignKey
+from sqlalchemy import String, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
 
 from app.database.base_class import Base
@@ -8,16 +8,17 @@ from app.database.base_class import Base
 if TYPE_CHECKING:
     from app.models.project import Project
 
-class  Domain(Base):
+
+class Domain(Base):
     __tablename__ = "domains"
 
-    id:Mapped[int] = mapped_column(
+    id: Mapped[int] = mapped_column(
         primary_key=True,
         autoincrement=True
     )
 
     project_id: Mapped[int] = mapped_column(
-        ForeignKey("projects.id"),
+        ForeignKey("projects.id", ondelete="CASCADE", name="fk_domains_project_id_projects"),
         nullable=False,
     )
 
@@ -29,9 +30,3 @@ class  Domain(Base):
     project: Mapped["Project"] = relationship(
         back_populates="domains",
     )
-
-
-
-
-
-
