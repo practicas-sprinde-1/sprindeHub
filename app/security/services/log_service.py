@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
+from app.models.tag import Tag
 from app.models.command import Command
 from app.models.domain import Domain
 from app.models.environment import Environment
@@ -19,6 +20,7 @@ from app.security.schemas.log_schema import LogPage
 
 ENTITY_TEXT_VALUE = {
     EntityType.CLIENT: (Client, "name"),
+    EntityType.TAG: (Tag, ("device_type", "brand", "model", "mac", "ip")),
     EntityType.COMMAND: (Command, "name"),
     EntityType.DOMAIN: (Domain, "url"),
     EntityType.ENVIRONMENT: (Environment, "url"),
@@ -36,7 +38,7 @@ def _get_entity_text(
         entity_type: EntityType,
 ) -> object:
     #Desempaqueta la tupla del diccionario, entity_model = entidad y field_name = atributo
-    entity_model, field_name = ENTITY_TEXT_VALUE[entity_type]
+    entity_model, field_names = ENTITY_TEXT_VALUE[entity_type]
 
     #Evita que se borre la entidad sin antes haber guardado su valor
     with db.no_autoflush:
@@ -45,7 +47,13 @@ def _get_entity_text(
     if entity is None:
         return ""
     #Usa "" para evitar que salte error en caso de poner un campo/atributo que no existe y devuelva "".
-    return getattr(entity,field_name,"")
+    if isinstance(field_names, tuple):
+        return " ".join(
+            str(value) for field in field_names
+            if (value := getattr(entity, field, None)) is not None
+        )
+    return getattr(entity, field_names, "")
+
 
 
 def _format_for_search(

@@ -6,6 +6,7 @@ from sqlalchemy.orm import mapped_column, Mapped, relationship
 from app.database.base_class import Base
 
 if TYPE_CHECKING:
+    from app.models.tag import Tag
     from app.models.project import Project
     from app.models.user_favorite_client_model import UserFavoriteClient
     from app.security.models.user_client_model import UserClient
@@ -46,6 +47,12 @@ class Client(Base):
 
     projects: Mapped[list["Project"]] = relationship(
         back_populates="client",
+        passive_deletes=True,
+    )
+
+    tags: Mapped[list["Tag"]] = relationship(
+        back_populates="client",
+        cascade="all, delete-orphan",
         passive_deletes=True,
     )
 

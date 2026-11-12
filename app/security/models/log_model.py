@@ -27,6 +27,7 @@ class EntityType(str, Enum):
     PROJECT = "PROJECT"
     REPOSITORY = "REPOSITORY"
     SERVICE = "SERVICE"
+    TAG = "TAG"
 
 
 class Log(Base):

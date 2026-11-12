@@ -1,6 +1,7 @@
 """Importa todos los modelos para registrarlos en los metadatos de SQLAlchemy."""
 
 from app.models.client import Client
+from app.models.tag import Tag
 from app.models.command import Command
 from app.models.domain import Domain
 from app.models.environment import Environment
@@ -18,6 +19,7 @@ from app.security.models.user_model import User
 # __all__ evita advertencias de "importación sin uso" en los linters y re-exporta los modelos.
 __all__ = (
     "Client",
+    "Tag",
     "Command",
     "Domain",
     "Environment",
