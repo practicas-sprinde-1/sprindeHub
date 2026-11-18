@@ -26,6 +26,7 @@ CurrentWriter = Annotated[User, Depends(require_modifier_role)]
 ClientWithAccess = Annotated[Client, Depends(require_client_access)]
 PaginationOffset = Annotated[int, Query(ge=0)]
 PaginationLimit = Annotated[int, Query(ge=1, le=100)]
+TagSearch = Annotated[str | None, Query(min_length=1, max_length=120)]
 
 
 def _get_accessible_tag(
@@ -44,12 +45,13 @@ def list_tags(
     current_user: CurrentUser,
     offset: PaginationOffset = 0,
     limit: PaginationLimit = 20,
+    search: TagSearch = None,
 ) -> list[Tag]:
     if current_user.role == RoleType.ADMIN:
-        return tag_service.get_tags(db, offset, limit)
+        return tag_service.get_tags(db, offset, limit, search)
 
     return tag_service.get_tags_by_users(
-        db, current_user.id, offset, limit,
+        db, current_user.id, offset, limit, search,
     )
 
 
@@ -59,9 +61,10 @@ def list_tags_by_client(
     client: ClientWithAccess,
     offset: PaginationOffset = 0,
     limit: PaginationLimit = 20,
+    search: TagSearch = None,
 ) -> list[Tag]:
     return tag_service.get_tags_by_client(
-        db, client.id, offset, limit,
+        db, client.id, offset, limit, search,
     )
 
 

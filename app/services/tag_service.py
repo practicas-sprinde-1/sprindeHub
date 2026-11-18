@@ -62,8 +62,13 @@ def get_tag(db: Session, tag_id: int) -> Tag:
     return tag
 
 
-def get_tags(db: Session, offset: int, limit: int) -> list[Tag]:
-    return tag_repo.find_all(db, offset, limit)
+def get_tags(
+    db: Session,
+    offset: int,
+    limit: int,
+    search: str | None = None,
+) -> list[Tag]:
+    return tag_repo.find_all(db, offset, limit, search)
 
 
 def get_tags_by_users(
@@ -71,8 +76,9 @@ def get_tags_by_users(
     user_id: int,
     offset: int,
     limit: int,
+    search: str | None = None,
 ) -> list[Tag]:
-    return tag_repo.find_all_by_users(db, user_id, offset, limit)
+    return tag_repo.find_all_by_users(db, user_id, offset, limit, search)
 
 
 def get_tags_by_client(
@@ -80,8 +86,9 @@ def get_tags_by_client(
     client_id: int,
     offset: int,
     limit: int,
+    search: str | None = None,
 ) -> list[Tag]:
-    return tag_repo.find_by_client_id(db, client_id, offset, limit)
+    return tag_repo.find_by_client_id(db, client_id, offset, limit, search)
 
 
 def create_tag(
