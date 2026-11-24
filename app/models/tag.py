@@ -25,7 +25,7 @@ class Tag(Base):
         nullable=False,
     )
 
-    device_type: Mapped[str] = mapped_column(
+    tag_type: Mapped[str] = mapped_column(
         String(50),
         nullable=False,
     )

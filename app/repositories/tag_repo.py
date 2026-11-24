@@ -13,7 +13,7 @@ def _apply_tag_search(statement, search: str | None):
     search_pattern = f"%{search.strip()}%"
     return statement.where(
         or_(
-            Tag.device_type.ilike(search_pattern),
+            Tag.tag_type.ilike(search_pattern),
             Tag.brand.ilike(search_pattern),
             Tag.model.ilike(search_pattern),
             Tag.mac.ilike(search_pattern),

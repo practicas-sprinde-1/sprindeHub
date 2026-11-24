@@ -99,7 +99,7 @@ def create_tag(
     client = client_service.get_active_client(db, data.client_id)
     tag = Tag(
         client_id=client.id,
-        device_type=data.device_type,
+        tag_type=data.tag_type,
         brand=data.brand,
         model=data.model,
         mac=data.mac,

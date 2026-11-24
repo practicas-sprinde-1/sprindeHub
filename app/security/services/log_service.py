@@ -20,7 +20,7 @@ from app.security.schemas.log_schema import LogPage
 
 ENTITY_TEXT_VALUE = {
     EntityType.CLIENT: (Client, "name"),
-    EntityType.TAG: (Tag, ("device_type", "brand", "model", "mac", "ip")),
+    EntityType.TAG: (Tag, ("tag_type", "brand", "model", "mac", "ip")),
     EntityType.COMMAND: (Command, "name"),
     EntityType.DOMAIN: (Domain, "url"),
     EntityType.ENVIRONMENT: (Environment, "url"),
